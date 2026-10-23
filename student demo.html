@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConsultHub | Student Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="student demo.css">
+</head>
+<body>
+
+<header class="topbar">
+    <a href="index.html" class="brand">
+        <span class="brand-icon">▣</span>
+        <span>
+            <strong>ConsultHub</strong>
+            <small>SLSU WORKSPACE</small>
+        </span>
+    </a>
+
+    <nav class="navigation">
+        <button class="nav-link active" data-view="dashboard">▦ Dashboard</button>
+        <button class="nav-link" data-view="consultations">⌕ Find Consultation</button>
+        <button class="nav-link" data-view="appointments">▣ My Appointments</button>
+        <button class="nav-link" data-view="history">◴ History</button>
+    </nav>
+
+    <div class="user-area">
+        <span class="user-avatar">♙</span>
+        <span class="user-details">
+            <strong>Juan dela Cruz</strong>
+            <small>Student Portal</small>
+        </span>
+        <a href="landing page.html" class="logout" title="Back to login">⇥</a>
+    </div>
+</header>
+
+<main class="container">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page-view">
+        <div class="welcome">
+            <div>
+                <span class="eyebrow">✣ STUDENT WORKSPACE</span>
+                <h1>Good evening, Juan</h1>
+                <p>Everything you need for your next academic consultation.</p>
+            </div>
+            <div class="date">
+                <span id="dayName"></span>
+                <strong id="currentDate"></strong>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <button class="action primary" data-go="consultations">
+                <span class="action-icon">⌕</span>
+                <span><strong>Book Consultation</strong><small>Find available faculty</small></span>
+                <span class="arrow">→</span>
+            </button>
+
+            <button class="action" data-go="appointments">
+                <span class="action-icon">▣</span>
+                <span><strong>My Appointments</strong><small>View all bookings</small></span>
+                <span class="arrow">→</span>
+            </button>
+        </div>
+
+        <div class="stats">
+            <button class="stat" data-go="appointments">
+                <span class="stat-icon blue">◷</span>
+                <strong id="upcomingCount">1</strong>
+                <small>Upcoming</small>
+            </button>
+            <button class="stat" data-go="history">
+                <span class="stat-icon green">✓</span>
+                <strong id="completedCount">2</strong>
+                <small>Completed</small>
+            </button>
+            <button class="stat" data-go="history">
+                <span class="stat-icon red">⊗</span>
+                <strong id="noShowCount">1</strong>
+                <small>No Show</small>
+            </button>
+        </div>
+
+        <div class="content-grid">
+            <section>
+                <h3 class="section-title">◷ &nbsp; Next Consultation</h3>
+                <div id="nextConsultation"></div>
+            </section>
+            <section>
+                <h3 class="section-title">⊙ &nbsp; Recent Activity</h3>
+                <div id="recentActivity" class="activity-list"></div>
+            </section>
+        </div>
+    </section>
+
+    <!-- FIND CONSULTATION -->
+    <section id="consultations" class="page-view hidden">
+        <div class="page-heading">
+            <span class="eyebrow">STUDENT WORKSPACE</span>
+            <h1>Find Consultation</h1>
+            <p>Find a faculty member and request an appointment.</p>
+        </div>
+
+        <div class="toolbar">
+            <input id="facultySearch" type="search" placeholder="Search faculty or department...">
+            <select id="departmentFilter">
+                <option value="all">All Departments</option>
+                <option>Information Technology</option>
+                <option>Computer Science</option>
+                <option>Mathematics</option>
+            </select>
+        </div>
+        <div id="facultyList" class="faculty-grid"></div>
+    </section>
+
+    <!-- APPOINTMENTS -->
+    <section id="appointments" class="page-view hidden">
+        <div class="page-heading">
+            <span class="eyebrow">YOUR SCHEDULE</span>
+            <h1>My Appointments</h1>
+            <p>View your bookings and check in for a consultation.</p>
+        </div>
+
+        <div class="filters">
+            <button class="filter active" data-filter="all">All</button>
+            <button class="filter" data-filter="Confirmed">Confirmed</button>
+            <button class="filter" data-filter="Completed">Completed</button>
+            <button class="filter" data-filter="No Show">No Show</button>
+        </div>
+        <div id="appointmentsList" class="stack-list"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="history" class="page-view hidden">
+        <div class="page-heading">
+            <span class="eyebrow">YOUR RECORDS</span>
+            <h1>Consultation History</h1>
+            <p>Review completed and missed consultations.</p>
+        </div>
+        <div id="historyList" class="stack-list"></div>
+    </section>
+
+</main>
+
+<div id="modal" class="modal hidden">
+    <div class="modal-card">
+        <button id="closeModal" class="modal-close">×</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="student demo.js"></script>
+</body>
+</html>
