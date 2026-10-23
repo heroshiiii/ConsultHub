@@ -468,6 +468,542 @@ input, select {
     gap: 14px;
 }
 
+.consultations-view .page-heading {
+    margin: 8px 0 22px;
+}
+
+.consultations-view .page-heading .eyebrow {
+    position: relative;
+    padding-left: 19px;
+    color: var(--blue);
+}
+
+.consultations-view .page-heading .eyebrow::before {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 14px;
+    height: 3px;
+    border-radius: 4px;
+    background: var(--blue);
+    content: "";
+}
+
+.consultations-view .page-heading h1 {
+    font-size: 27px;
+}
+
+.consultations-view .page-heading p {
+    color: var(--muted);
+}
+
+.consultations-view .toolbar {
+    grid-template-columns: minmax(0, 2fr) minmax(190px, .85fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.faculty-search {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: white;
+    color: var(--muted);
+    font-size: 18px;
+}
+
+.faculty-search:focus-within {
+    border-color: #9bb7ff;
+    box-shadow: 0 0 0 3px #2864ed16;
+}
+
+.faculty-search input {
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+}
+
+.faculty-search input:focus {
+    box-shadow: none;
+}
+
+.faculty-count {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.consultations-view .faculty-grid {
+    gap: 12px;
+}
+
+.consultations-view .faculty-card {
+    min-width: 0;
+    padding: 15px;
+    border-radius: 17px;
+    box-shadow: 0 5px 20px #1d355708;
+}
+
+.faculty-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.faculty-card-heading .avatar {
+    width: 36px;
+    height: 36px;
+}
+
+.faculty-card-heading .person-info strong {
+    font-size: 12px;
+}
+
+.faculty-card-heading .person-info small {
+    margin-top: 4px;
+    font-size: 9px;
+}
+
+.faculty-card-heading .avatar.blue {
+    background: #2864ed;
+    color: white;
+}
+
+.faculty-card-heading .avatar.cyan {
+    background: #12a9dc;
+    color: white;
+}
+
+.faculty-card-heading .avatar.purple {
+    background: #793bf1;
+    color: white;
+}
+
+.faculty-card-heading .avatar.green {
+    background: #079b70;
+    color: white;
+}
+
+.faculty-book {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    place-items: center;
+    margin-left: auto;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #9aaac0;
+    font-size: 22px;
+}
+
+.faculty-book:hover {
+    background: #e9f0ff;
+    color: var(--blue);
+}
+
+.faculty-meta {
+    display: grid;
+    gap: 5px;
+    margin-top: 13px;
+    color: #697b97;
+    font-size: 9px;
+}
+
+.faculty-meta p {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+}
+
+.faculty-meta p span {
+    flex: 0 0 10px;
+    color: #8292a9;
+}
+
+.consultations-view .faculty-description {
+    min-height: 32px;
+    margin: 10px 0;
+    color: #697b97;
+    font-size: 9px;
+    line-height: 1.55;
+}
+
+.faculty-availability {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #8292a9;
+    font-size: 11px;
+}
+
+.slot-badge {
+    padding: 3px 7px;
+    border: 1px solid #a7f0c8;
+    border-radius: 6px;
+    background: #f0fff6;
+    color: #16a66a;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.appointments-view .page-heading {
+    margin: 8px 0 22px;
+}
+
+.appointments-view .page-heading .eyebrow {
+    position: relative;
+    padding-left: 19px;
+    color: var(--blue);
+}
+
+.appointments-view .page-heading .eyebrow::before {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 14px;
+    height: 3px;
+    border-radius: 4px;
+    background: var(--blue);
+    content: "";
+}
+
+.appointments-view .page-heading h1 {
+    font-size: 27px;
+}
+
+.appointments-view .page-heading p {
+    color: var(--muted);
+}
+
+.appointments-view .filters {
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.appointments-view .filter {
+    min-width: 62px;
+    padding: 8px 14px;
+    font-weight: 600;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+.appointments-view .filter:hover {
+    border-color: #a2bbff;
+    color: var(--blue);
+}
+
+.appointments-view .filter.active {
+    border-color: var(--blue);
+    background: var(--blue);
+    color: white;
+}
+
+.appointments-view .stack-list {
+    gap: 12px;
+}
+
+.appointment-card {
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    background: white;
+    box-shadow: 0 5px 20px #1d355708;
+}
+
+.appointment-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.appointment-card-heading .avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--blue);
+    color: white;
+}
+
+.appointment-card-heading .person-info strong {
+    font-size: 12px;
+}
+
+.appointment-card-heading .person-info small {
+    margin-top: 4px;
+    font-size: 9px;
+}
+
+.appointment-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 18px;
+    margin: 16px 0;
+    padding-top: 14px;
+    border-top: 1px solid #edf1f7;
+}
+
+.appointment-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+    color: #8292a9;
+}
+
+.appointment-detail > span:first-child {
+    padding-top: 1px;
+    font-size: 12px;
+}
+
+.appointment-detail > span:last-child {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.appointment-detail small {
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.appointment-detail strong {
+    overflow-wrap: anywhere;
+    color: #53647e;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.appointment-card .small-button {
+    min-height: 32px;
+    padding: 8px 12px;
+}
+
+.history-view .page-heading {
+    position: relative;
+    margin: 8px 0 20px;
+    padding-right: 160px;
+}
+
+.history-view .page-heading .eyebrow {
+    position: relative;
+    padding-left: 19px;
+    color: var(--blue);
+}
+
+.history-view .page-heading .eyebrow::before {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 14px;
+    height: 3px;
+    border-radius: 4px;
+    background: var(--blue);
+    content: "";
+}
+
+.history-view .page-heading h1 {
+    font-size: 27px;
+}
+
+.history-view .page-heading p {
+    color: var(--muted);
+}
+
+.history-book-button {
+    position: absolute;
+    top: 5px;
+    right: 0;
+    width: auto;
+    min-height: 34px;
+    margin: 0;
+    padding: 0 14px;
+    border-radius: 20px;
+}
+
+.history-count {
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.history-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.history-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(100%, 270px);
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    color: var(--muted);
+    font-size: 17px;
+}
+
+.history-search:focus-within {
+    border-color: #9bb7ff;
+    box-shadow: 0 0 0 3px #2864ed16;
+}
+
+.history-search input {
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 10px;
+}
+
+.history-search input:focus {
+    box-shadow: none;
+}
+
+.history-view .filters {
+    gap: 6px;
+    margin: 0;
+}
+
+.history-view .filter {
+    padding: 7px 11px;
+    border-radius: 9px;
+    font-size: 10px;
+}
+
+.history-view .filter.active {
+    border-color: var(--blue);
+    background: var(--blue);
+    color: white;
+}
+
+.history-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 5px 20px #1d355708;
+}
+
+.history-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.history-table th {
+    padding: 11px 12px;
+    background: #f8fafc;
+    color: #75849e;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.history-table td {
+    padding: 11px 12px;
+    border-top: 1px solid #e8edf5;
+    color: #62738d;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.history-faculty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 170px;
+}
+
+.history-faculty .avatar {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    background: var(--blue);
+    font-size: 9px;
+}
+
+.history-faculty > span:last-child {
+    display: grid;
+    gap: 3px;
+}
+
+.history-faculty strong {
+    color: var(--text);
+    font-size: 10px;
+}
+
+.history-faculty small {
+    max-width: 150px;
+    color: var(--muted);
+    font-size: 8px;
+}
+
+.history-cell-icon {
+    margin-right: 5px;
+    color: #8393a9;
+}
+
+.checkin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 20px;
+    font-size: 8px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.checkin-badge.checked-in {
+    background: #e8fff4;
+    color: #09885c;
+}
+
+.checkin-badge.not-checked-in {
+    background: #f0f3f8;
+    color: #71809b;
+}
+
+.history-details {
+    border: 0;
+    background: transparent;
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.history-details:hover {
+    text-decoration: underline;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
 .faculty-card h3 {
     margin: 14px 0 7px;
     font-size: 14px;
@@ -633,6 +1169,33 @@ input, select {
 
     .quick-actions, .faculty-grid, .toolbar {
         grid-template-columns: 1fr;
+    }
+
+    .consultations-view .toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .appointment-details {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .history-view .page-heading {
+        padding-right: 0;
+    }
+
+    .history-book-button {
+        position: static;
+        margin-top: 12px;
+    }
+
+    .history-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .history-search {
+        width: 100%;
     }
 
     .stats {

@@ -19,7 +19,8 @@ let appointments = [
         date: "2026-09-11",
         time: "2:00 PM",
         location: "Faculty Office 204",
-        status: "Completed"
+        status: "Completed",
+        checkedIn: true
     },
     {
         id: 3,
@@ -37,38 +38,52 @@ let appointments = [
         date: "2026-09-25",
         time: "10:00 AM",
         location: "Faculty Office 204",
-        status: "Completed"
+        status: "Completed",
+        checkedIn: true
     }
 ];
 
 const facultyMembers = [
     {
-        name: "Dr. Anna Lim",
-        department: "Information Technology",
-        office: "IT Building Room 312",
-        available: "Monday–Friday, 9 AM–3 PM"
-    },
-    {
         name: "Dr. Maria Santos",
+        title: "Associate Professor",
         department: "Computer Science",
-        office: "Faculty Office 204",
-        available: "Monday–Thursday, 10 AM–2 PM"
+        office: "CS Building Room 204",
+        description: "Specializes in algorithms, data structures, and software engineering. Available for thesis advising and course inquiries.",
+        slots: 3,
+        color: "blue"
     },
     {
         name: "Prof. Ramon Cruz",
+        title: "Assistant Professor",
         department: "Mathematics",
-        office: "Math Building Room 105",
-        available: "Tuesday–Friday, 1 PM–4 PM"
+        office: "Math Building Room 108",
+        description: "Teaches Calculus, Linear Algebra, and Discrete Mathematics. Research focus on applied mathematics.",
+        slots: 1,
+        color: "cyan"
     },
     {
-        name: "Prof. Daniel Reyes",
+        name: "Dr. Anna Lim",
+        title: "Professor",
         department: "Information Technology",
-        office: "IT Building Room 310",
-        available: "Monday–Friday, 8 AM–12 PM"
+        office: "IT Building Room 312",
+        description: "Expert in database systems, cloud computing, and network administration. Available for internship endorsements.",
+        slots: 2,
+        color: "purple"
+    },
+    {
+        name: "Prof. Joel Reyes",
+        title: "Instructor",
+        department: "English",
+        office: "Liberal Arts Building Room 105",
+        description: "Teaches Technical Writing and Communication Arts. Available for thesis writing consultations.",
+        slots: 1,
+        color: "green"
     }
 ];
 
 let activeFilter = "all";
+let activeHistoryFilter = "all";
 let selectedFaculty = null;
 let toastTimer;
 
@@ -264,31 +279,37 @@ function renderFaculty() {
     const department = $("#departmentFilter").value;
 
     const filtered = facultyMembers.filter((faculty) => {
-        const text = (faculty.name + " " + faculty.department).toLowerCase();
+        const text = (faculty.name + " " + faculty.title + " " + faculty.department).toLowerCase();
 
         return text.includes(search) &&
             (department === "all" || faculty.department === department);
     });
 
+    $("#facultyCount").textContent =
+        `${filtered.length} faculty ${filtered.length === 1 ? "member" : "members"} found`;
+
     $("#facultyList").innerHTML = filtered.length
         ? filtered.map((faculty) => `
             <article class="faculty-card">
-                <div class="person">
-                    <span class="avatar">${initials(faculty.name)}</span>
+                <div class="faculty-card-heading">
+                    <span class="avatar ${faculty.color}">${initials(faculty.name)}</span>
                     <div class="person-info">
                         <strong>${escapeHTML(faculty.name)}</strong>
-                        <small>${escapeHTML(faculty.department)}</small>
+                        <small>${escapeHTML(faculty.title)}</small>
                     </div>
+                    <button class="faculty-book" data-book="${escapeHTML(faculty.name)}"
+                        aria-label="Book a consultation with ${escapeHTML(faculty.name)}">›</button>
                 </div>
 
-                <div class="details">
-                    <div>⌖ &nbsp; ${escapeHTML(faculty.office)}</div>
-                    <div>◷ &nbsp; ${escapeHTML(faculty.available)}</div>
+                <div class="faculty-meta">
+                    <p><span aria-hidden="true">▦</span> Department of ${escapeHTML(faculty.department)}</p>
+                    <p><span aria-hidden="true">⌖</span> ${escapeHTML(faculty.office)}</p>
                 </div>
-
-                <button class="primary-button" data-book="${escapeHTML(faculty.name)}">
-                    Book Consultation
-                </button>
+                <p class="faculty-description">${escapeHTML(faculty.description)}</p>
+                <div class="faculty-availability">
+                    <span aria-hidden="true">▢</span>
+                    <span class="slot-badge">${faculty.slots} ${faculty.slots === 1 ? "slot" : "slots"} available</span>
+                </div>
             </article>
         `).join("")
         : `<div class="empty">No faculty members found.</div>`;
@@ -311,19 +332,35 @@ function renderAppointments() {
 
     $("#appointmentsList").innerHTML = list.length
         ? list.map((item) => `
-            <article class="list-card">
-                <div class="person">
-                    <span class="avatar">${initials(item.faculty)}</span>
-                    <div class="person-info">
-                        <strong>${escapeHTML(item.faculty)}</strong>
-                        <small>${escapeHTML(item.department)}</small>
-                        <small>${escapeHTML(prettyDate(item.date))} · ${escapeHTML(item.time)}</small>
-                        <small>${escapeHTML(item.location)}</small>
-                        ${badge(item.status)}
+            <article class="appointment-card">
+                <div class="appointment-card-heading">
+                    <div class="person">
+                        <span class="avatar appointment-avatar">${initials(item.faculty)}</span>
+                        <div class="person-info">
+                            <strong>${escapeHTML(item.faculty)}</strong>
+                            <small>${escapeHTML(item.department)}</small>
+                        </div>
+                    </div>
+                    ${badge(item.status)}
+                </div>
+
+                <div class="appointment-details">
+                    <div class="appointment-detail">
+                        <span aria-hidden="true">▦</span>
+                        <span><small>Date</small><strong>${escapeHTML(prettyDate(item.date))}</strong></span>
+                    </div>
+                    <div class="appointment-detail">
+                        <span aria-hidden="true">◷</span>
+                        <span><small>Time</small><strong>${escapeHTML(item.time)}</strong></span>
+                    </div>
+                    <div class="appointment-detail location">
+                        <span aria-hidden="true">⌖</span>
+                        <span><small>Location</small><strong>${escapeHTML(item.location)}</strong></span>
                     </div>
                 </div>
+
                 <button class="small-button" data-details="${item.id}">
-                    View Details
+                    ${item.status === "Confirmed" ? "View Details & Check In" : "View Details"}
                 </button>
             </article>
         `).join("")
@@ -343,26 +380,77 @@ $$("[data-filter]").forEach((button) => {
 });
 
 function renderHistory() {
-    const list = appointments.filter((item) =>
+    const search = $("#historySearch").value.trim().toLowerCase();
+    const history = appointments.filter((item) =>
         item.status === "Completed" || item.status === "No Show"
     );
+    const list = history
+        .filter((item) => activeHistoryFilter === "all" || item.status === activeHistoryFilter)
+        .filter((item) => (item.faculty + " " + item.department + " " + item.date + " " + item.time)
+            .toLowerCase().includes(search))
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+    $("#historyCount").textContent =
+        `${history.length} total ${history.length === 1 ? "record" : "records"}`;
 
     $("#historyList").innerHTML = list.length
-        ? list.map((item) => `
-            <article class="list-card">
-                <div class="person">
-                    <span class="avatar">${initials(item.faculty)}</span>
-                    <div class="person-info">
-                        <strong>${escapeHTML(item.faculty)}</strong>
-                        <small>${escapeHTML(item.department)}</small>
-                        <small>${escapeHTML(prettyDate(item.date))} · ${escapeHTML(item.time)}</small>
-                    </div>
-                </div>
-                ${badge(item.status)}
-            </article>
-        `).join("")
-        : `<div class="empty">No consultation history yet.</div>`;
+        ? `
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Faculty</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Time</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Check-in</th>
+                        <th scope="col"><span class="visually-hidden">Details</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${list.map((item) => `
+                        <tr>
+                            <td>
+                                <div class="history-faculty">
+                                    <span class="avatar">${initials(item.faculty)}</span>
+                                    <span>
+                                        <strong>${escapeHTML(item.faculty)}</strong>
+                                        <small>Department of ${escapeHTML(item.department)}</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td><span class="history-cell-icon" aria-hidden="true">▦</span>${escapeHTML(prettyDate(item.date))}</td>
+                            <td><span class="history-cell-icon" aria-hidden="true">◷</span>${escapeHTML(item.time)}</td>
+                            <td>${badge(item.status)}</td>
+                            <td>
+                                <span class="checkin-badge ${item.checkedIn ? "checked-in" : "not-checked-in"}">
+                                    <span aria-hidden="true">●</span>${item.checkedIn ? "Checked In" : "Not Checked In"}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="history-details" data-details="${item.id}"
+                                    aria-label="View details for ${escapeHTML(item.faculty)}">View</button>
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `
+        : `<div class="empty">No history records match your search.</div>`;
 }
+
+$("#historySearch").addEventListener("input", renderHistory);
+
+$$("[data-history-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+        activeHistoryFilter = button.dataset.historyFilter;
+
+        $$("[data-history-filter]").forEach((filter) => {
+            filter.classList.toggle("active", filter === button);
+        });
+
+        renderHistory();
+    });
+});
 
 
 // CREATE A BOOKING

@@ -99,31 +99,37 @@
     </section>
 
     <!-- FIND CONSULTATION -->
-    <section id="consultations" class="page-view hidden">
+    <section id="consultations" class="page-view consultations-view hidden">
         <div class="page-heading">
-            <span class="eyebrow">STUDENT WORKSPACE</span>
+            <span class="eyebrow">CONSULTHUB</span>
             <h1>Find Consultation</h1>
-            <p>Find a faculty member and request an appointment.</p>
+            <p>Browse faculty and book an available consultation slot</p>
         </div>
 
         <div class="toolbar">
-            <input id="facultySearch" type="search" placeholder="Search faculty or department...">
-            <select id="departmentFilter">
+            <label class="faculty-search">
+                <span aria-hidden="true">⌕</span>
+                <input id="facultySearch" type="search" placeholder="Search faculty by name or department..." aria-label="Search faculty by name or department">
+            </label>
+            <select id="departmentFilter" aria-label="Filter faculty by department">
                 <option value="all">All Departments</option>
                 <option>Information Technology</option>
                 <option>Computer Science</option>
                 <option>Mathematics</option>
+                <option>English</option>
             </select>
         </div>
+
+        <p id="facultyCount" class="faculty-count" aria-live="polite"></p>
         <div id="facultyList" class="faculty-grid"></div>
     </section>
 
     <!-- APPOINTMENTS -->
-    <section id="appointments" class="page-view hidden">
+    <section id="appointments" class="page-view appointments-view hidden">
         <div class="page-heading">
-            <span class="eyebrow">YOUR SCHEDULE</span>
+            <span class="eyebrow">CONSULTHUB</span>
             <h1>My Appointments</h1>
-            <p>View your bookings and check in for a consultation.</p>
+            <p>Keep track of your upcoming and past consultations.</p>
         </div>
 
         <div class="filters">
@@ -136,13 +142,28 @@
     </section>
 
     <!-- HISTORY -->
-    <section id="history" class="page-view hidden">
+    <section id="history" class="page-view history-view hidden">
         <div class="page-heading">
-            <span class="eyebrow">YOUR RECORDS</span>
+            <span class="eyebrow">CONSULTHUB</span>
             <h1>Consultation History</h1>
-            <p>Review completed and missed consultations.</p>
+            <p>Review your completed and missed consultations.</p>
+            <button class="primary-button history-book-button" data-go="consultations">
+                Find Consultation
+            </button>
         </div>
-        <div id="historyList" class="stack-list"></div>
+        <p id="historyCount" class="history-count" aria-live="polite"></p>
+        <div class="history-toolbar">
+            <label class="history-search">
+                <span aria-hidden="true">⌕</span>
+                <input id="historySearch" type="search" placeholder="Search history..." aria-label="Search consultation history">
+            </label>
+            <div class="filters" aria-label="Filter history by status">
+                <button class="filter active" data-history-filter="all">All</button>
+                <button class="filter" data-history-filter="Completed">Completed</button>
+                <button class="filter" data-history-filter="No Show">No Show</button>
+            </div>
+        </div>
+        <div id="historyList" class="history-table-wrap"></div>
     </section>
 
 </main>

@@ -299,6 +299,10 @@ input:focus {
     color: #18b7a4;
 }
 
+.demo-icon.admin {
+    color: #6248ff;
+}
+
 .demo-text {
     min-width: 0;
     display: flex;

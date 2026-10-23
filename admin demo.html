@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConsultHub | Admin Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin demo.css">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="landing page.html" aria-label="ConsultHub home">
+            <span class="brand-mark" aria-hidden="true">▦</span>
+            <span>
+                <strong>ConsultHub</strong>
+                <small>SLSU WORKSPACE</small>
+            </span>
+        </a>
+
+        <nav class="navigation" aria-label="Admin navigation">
+            <button class="nav-link active" data-view="overview"><span>▦</span> Overview</button>
+            <button class="nav-link" data-view="accounts"><span>♙</span> Accounts</button>
+            <button class="nav-link" data-view="faculty"><span>▣</span> Faculty</button>
+            <button class="nav-link" data-view="students"><span>♧</span> Students</button>
+            <button class="nav-link" data-view="system"><span>⚙</span> System</button>
+            <button class="nav-link" data-view="records"><span>▤</span> Records</button>
+        </nav>
+
+        <div class="user-area">
+            <span class="user-avatar">AD</span>
+            <span class="user-details">
+                <strong>Admin Desk</strong>
+                <small>Administrator</small>
+            </span>
+            <a class="logout" href="landing page.html" title="Back to login" aria-label="Back to login">⇥</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="overview" class="page-view">
+            <div class="welcome">
+                <div>
+                    <span class="eyebrow">◉ &nbsp; ADMIN WORKSPACE</span>
+                    <h1>System overview</h1>
+                    <p>Keep ConsultHub accounts, academic records, and consultation activity organized.</p>
+                </div>
+                <div class="system-status">
+                    <span class="status-dot"></span>
+                    All systems operational
+                </div>
+            </div>
+
+            <div class="stats">
+                <article class="stat">
+                    <span class="stat-icon blue">♙</span>
+                    <strong id="accountCount">10</strong>
+                    <span><small>Active accounts</small><small class="hint">across all roles</small></span>
+                </article>
+                <article class="stat">
+                    <span class="stat-icon purple">▣</span>
+                    <strong id="consultationCount">8</strong>
+                    <span><small>Consultations</small><small class="hint">total records</small></span>
+                </article>
+                <article class="stat">
+                    <span class="stat-icon green">✓</span>
+                    <strong id="completedCount">2</strong>
+                    <span><small>Completed</small><small class="hint">successful sessions</small></span>
+                </article>
+                <article class="stat">
+                    <span class="stat-icon red">⊗</span>
+                    <strong id="missedCount">1</strong>
+                    <span><small>No shows</small><small class="hint">automatically marked</small></span>
+                </article>
+            </div>
+
+            <div class="management-heading">
+                <h2 class="section-title"><span>☷</span> Management tools</h2>
+                <span>Select an area to manage</span>
+            </div>
+            <div class="management-grid">
+                <button class="management-card" data-go="accounts">
+                    <span class="management-icon violet">♙</span>
+                    <strong>User accounts</strong>
+                    <small>Manage portal access and account status</small>
+                    <span class="management-arrow">›</span>
+                </button>
+                <button class="management-card" data-go="faculty">
+                    <span class="management-icon blue">▯</span>
+                    <strong>Faculty information</strong>
+                    <small>Maintain departments, offices, and profiles</small>
+                    <span class="management-arrow">›</span>
+                </button>
+                <button class="management-card" data-go="students">
+                    <span class="management-icon green">♧</span>
+                    <strong>Student information</strong>
+                    <small>Review student programs and year levels</small>
+                    <span class="management-arrow">›</span>
+                </button>
+                <button class="management-card" data-go="system">
+                    <span class="management-icon orange">▤</span>
+                    <strong>System information</strong>
+                    <small>Configure consultation policies and limits</small>
+                    <span class="management-arrow">›</span>
+                </button>
+                <button class="management-card" data-go="records">
+                    <span class="management-icon pink">▣</span>
+                    <strong>Consultation records</strong>
+                    <small>Monitor reservations and attendance outcomes</small>
+                    <span class="management-arrow">›</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="accounts" class="page-view hidden">
+            <div class="page-heading">
+                <span class="eyebrow">ADMIN WORKSPACE</span>
+                <h1>User accounts</h1>
+                <p>Manage portal access and account status across roles.</p>
+            </div>
+            <div id="accountsList" class="data-list"></div>
+        </section>
+
+        <section id="faculty" class="page-view hidden">
+            <div class="page-heading">
+                <span class="eyebrow">ADMIN WORKSPACE</span>
+                <h1>Faculty information</h1>
+                <p>Maintain departments, offices, and faculty profiles.</p>
+            </div>
+            <div id="facultyOverview" class="data-list"></div>
+        </section>
+
+        <section id="students" class="page-view hidden">
+            <div class="page-heading">
+                <span class="eyebrow">ADMIN WORKSPACE</span>
+                <h1>Student information</h1>
+                <p>Review student programs and year levels.</p>
+            </div>
+            <div id="studentsList" class="data-list"></div>
+        </section>
+
+        <section id="system" class="page-view hidden">
+            <div class="page-heading">
+                <span class="eyebrow">ADMIN WORKSPACE</span>
+                <h1>System information</h1>
+                <p>Review the consultation policies and limits used in this demo.</p>
+            </div>
+            <div id="systemList" class="settings-grid"></div>
+        </section>
+
+        <section id="records" class="page-view hidden">
+            <div class="page-heading">
+                <span class="eyebrow">ADMIN WORKSPACE</span>
+                <h1>Consultation records</h1>
+                <p>Monitor reservations and attendance outcomes.</p>
+            </div>
+            <div id="recordsList" class="data-list"></div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="admin demo.js"></script>
+</body>
+</html>
