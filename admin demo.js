@@ -2,46 +2,52 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const accountData = [
-    { name: "Juan Dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Maria Santos", email: "maria.santos@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Ramon Cruz", email: "ramon.cruz@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Anna Lim", email: "anna.lim@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Joel Reyes", email: "joel.reyes@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Jessa Villanueva", email: "jessa.villanueva@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Philip Ramos", email: "philip.ramos@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Liza Abad", email: "liza.abad@student.slsu.edu.ph", role: "Student", status: "Active" },
+    { name: "Juan dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", role: "Student", status: "Active" },
+    { name: "Andrea Reyes", email: "andrea.reyes@student.slsu.edu.ph", role: "Student", status: "Active" },
     { name: "Carlo Mendoza", email: "carlo.mendoza@student.slsu.edu.ph", role: "Student", status: "Active" },
+    { name: "Sofia Villanueva", email: "sofia.villanueva@student.slsu.edu.ph", role: "Student", status: "Active" },
+    { name: "Marco Tan", email: "marco.tan@student.slsu.edu.ph", role: "Student", status: "Active" },
+    { name: "Dr. Maria Santos", email: "maria.santos@slsu.edu.ph", role: "Faculty", status: "Active" },
+    { name: "Prof. Ramon Cruz", email: "ramon.cruz@slsu.edu.ph", role: "Faculty", status: "Active" },
+    { name: "Dr. Anna Lim", email: "anna.lim@slsu.edu.ph", role: "Faculty", status: "Active" },
+    { name: "Prof. Joel Reyes", email: "joel.reyes@slsu.edu.ph", role: "Faculty", status: "Active" },
     { name: "System Administrator", email: "admin@slsu.edu.ph", role: "Administrator", status: "Active" }
 ];
 
 const facultyData = [
-    { name: "Maria Santos", title: "Associate Professor", email: "maria.santos@slsu.edu.ph", department: "Computer Science", office: "CS Building Room 204", workload: 8, slots: 5 },
-    { name: "Ramon Cruz", title: "Assistant Professor", email: "ramon.cruz@slsu.edu.ph", department: "Mathematics", office: "Math Building Room 108", workload: 7, slots: 3 },
-    { name: "Anna Lim", title: "Professor", email: "anna.lim@slsu.edu.ph", department: "Information Technology", office: "IT Building Room 312", workload: 9, slots: 4 },
-    { name: "Joel Reyes", title: "Instructor", email: "joel.reyes@slsu.edu.ph", department: "English", office: "Liberal Arts Building Room 105", workload: 5, slots: 2 }
+    { name: "Dr. Maria Santos", title: "Associate Professor", email: "maria.santos@slsu.edu.ph", department: "Computer Science", office: "CS Building Room 204", workload: 8, slots: 5 },
+    { name: "Prof. Ramon Cruz", title: "Assistant Professor", email: "ramon.cruz@slsu.edu.ph", department: "Mathematics", office: "Math Building Room 108", workload: 7, slots: 3 },
+    { name: "Dr. Anna Lim", title: "Professor", email: "anna.lim@slsu.edu.ph", department: "Information Technology", office: "IT Building Room 312", workload: 9, slots: 4 },
+    { name: "Prof. Joel Reyes", title: "Instructor", email: "joel.reyes@slsu.edu.ph", department: "English", office: "Liberal Arts Building Room 105", workload: 5, slots: 2 }
 ];
 
 const studentData = [
-    { name: "Juan Dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", program: "BS Computer Science", year: "3rd Year" },
-    { name: "Jessa Villanueva", email: "jessa.villanueva@student.slsu.edu.ph", program: "BS Mathematics", year: "2nd Year" },
-    { name: "Philip Ramos", email: "philip.ramos@student.slsu.edu.ph", program: "BS Information Technology", year: "4th Year" },
-    { name: "Liza Abad", email: "liza.abad@student.slsu.edu.ph", program: "BA English", year: "3rd Year" },
-    { name: "Carlo Mendoza", email: "carlo.mendoza@student.slsu.edu.ph", program: "BS Computer Science", year: "1st Year" },
-    { name: "Sofia Villanueva", email: "sofia.villanueva@student.slsu.edu.ph", program: "BS Information Technology", year: "2nd Year" }
+    { name: "Juan dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", studentNumber: "2021-00123", program: "BS Computer Science", year: "Year 3", section: "3A" },
+    { name: "Andrea Reyes", email: "andrea.reyes@student.slsu.edu.ph", studentNumber: "2022-00456", program: "BS Information Technology", year: "Year 2", section: "2B" },
+    { name: "Carlo Mendoza", email: "carlo.mendoza@student.slsu.edu.ph", studentNumber: "2020-00789", program: "BS Computer Science", year: "Year 4", section: "4A" },
+    { name: "Sofia Villanueva", email: "sofia.villanueva@student.slsu.edu.ph", studentNumber: "2023-00321", program: "BS Mathematics", year: "Year 1", section: "1C" },
+    { name: "Marco Tan", email: "marco.tan@student.slsu.edu.ph", studentNumber: "2021-00654", program: "BS Computer Science", year: "Year 3", section: "3B" }
 ];
 
 const consultationData = [
-    { student: "Juan Dela Cruz", faculty: "Maria Santos", department: "Computer Science", date: "2026-10-21", time: "10:00 AM – 11:00 AM", status: "Completed" },
-    { student: "Jessa Villanueva", faculty: "Ramon Cruz", department: "Mathematics", date: "2026-10-20", time: "1:00 PM – 2:00 PM", status: "Completed" },
-    { student: "Philip Ramos", faculty: "Anna Lim", department: "Information Technology", date: "2026-10-19", time: "9:30 AM – 10:30 AM", status: "No Show" },
-    { student: "Liza Abad", faculty: "Joel Reyes", department: "English", date: "2026-10-28", time: "3:00 PM – 4:00 PM", status: "Confirmed" },
-    { student: "Carlo Mendoza", faculty: "Maria Santos", department: "Computer Science", date: "2026-10-29", time: "11:00 AM – 12:00 PM", status: "Confirmed" },
-    { student: "Sofia Villanueva", faculty: "Anna Lim", department: "Information Technology", date: "2026-10-30", time: "1:00 PM – 2:00 PM", status: "Confirmed" },
-    { student: "Juan Dela Cruz", faculty: "Ramon Cruz", department: "Mathematics", date: "2026-10-31", time: "10:00 AM – 11:00 AM", status: "Pending" },
-    { student: "Jessa Villanueva", faculty: "Joel Reyes", department: "English", date: "2026-11-02", time: "2:00 PM – 3:00 PM", status: "Confirmed" }
+    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Anna Lim", date: "2026-10-01", time: "10:00 AM – 11:00 AM", checkedIn: false, status: "Confirmed" },
+    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Maria Santos", date: "2026-09-25", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Completed" },
+    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Prof. Ramon Cruz", date: "2026-09-18", time: "1:00 PM – 2:00 PM", checkedIn: false, status: "No Show" },
+    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Maria Santos", date: "2026-09-11", time: "2:00 PM – 3:00 PM", checkedIn: true, status: "Completed" },
+    { student: "Andrea Reyes", studentNumber: "2022-00456", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Confirmed" },
+    { student: "Carlo Mendoza", studentNumber: "2020-00789", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: false, status: "Confirmed" },
+    { student: "Sofia Villanueva", studentNumber: "2023-00321", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Confirmed" },
+    { student: "Marco Tan", studentNumber: "2021-00654", faculty: "Dr. Maria Santos", date: "2026-10-01", time: "2:00 PM – 3:00 PM", checkedIn: false, status: "Confirmed" }
 ];
 
 let toastTimer;
+let editingFacultyIndex = null;
+const systemPolicies = {
+    checkinWindow: 20,
+    defaultCapacity: 5,
+    automaticNoShow: true,
+    automaticCompletion: true
+};
 
 function showToast(message) {
     const toast = $("#toast");
@@ -106,72 +112,113 @@ function statusClass(status) {
 }
 
 function renderOverview() {
-    $("#accountCount").textContent = accountData.length;
+    $("#accountCount").textContent = accountData.filter((account) => account.status === "Active").length;
     $("#consultationCount").textContent = consultationData.length;
     $("#completedCount").textContent = consultationData.filter((item) => item.status === "Completed").length;
     $("#missedCount").textContent = consultationData.filter((item) => item.status === "No Show").length;
 }
 
 function renderAccounts() {
-    $("#accountsList").innerHTML = accountData.map((account) => `
-        <article class="data-card">
-            <span class="avatar">${initials(account.name)}</span>
-            <div class="data-primary"><strong>${escapeHTML(account.name)}</strong><small>${escapeHTML(account.email)}</small></div>
-            <span class="data-secondary">${escapeHTML(account.role)}</span>
-            <span class="status-pill confirmed">${escapeHTML(account.status)}</span>
-        </article>
-    `).join("");
+    const query = $("#accountSearch").value.trim().toLowerCase();
+    const filteredAccounts = accountData.filter((account) =>
+        `${account.name} ${account.email} ${account.role} ${account.status}`.toLowerCase().includes(query)
+    );
+
+    $("#accountsList").innerHTML = filteredAccounts.length
+        ? filteredAccounts.map((account) => {
+            const index = accountData.indexOf(account);
+            const isAdministrator = account.role === "Administrator";
+            return `<article class="account-row">
+                <span class="account-avatar">${escapeHTML(initials(account.name))}</span>
+                <span class="account-identity">
+                    <strong>${escapeHTML(account.name)}</strong>
+                    <small>${escapeHTML(account.email)}</small>
+                </span>
+                <span class="account-role">${escapeHTML(isAdministrator ? "Admin" : account.role)}</span>
+                <span class="account-status ${account.status === "Active" ? "active" : "suspended"}"><span aria-hidden="true"></span>${escapeHTML(account.status)}</span>
+                ${isAdministrator
+                    ? ""
+                    : `<button class="account-action" type="button" data-account-toggle="${index}" aria-label="${account.status === "Active" ? "Suspend" : "Reactivate"} ${escapeHTML(account.name)}">${account.status === "Active" ? "Suspend" : "Reactivate"}</button>`}
+            </article>`;
+        }).join("")
+        : `<p class="account-empty">No accounts match your search.</p>`;
 }
 
 function renderFacultyOverview() {
-    $("#facultyOverview").innerHTML = facultyData.map((faculty) => `
-        <article class="data-card">
-            <span class="avatar faculty-avatar">${initials(faculty.name)}</span>
-            <div class="data-primary"><strong>${escapeHTML(faculty.title)} ${escapeHTML(faculty.name)}</strong><small>${escapeHTML(faculty.email)}</small></div>
-            <span class="data-secondary">${escapeHTML(faculty.department)}</span>
-            <span class="data-secondary">${escapeHTML(faculty.office)}</span>
-            <span class="status-pill confirmed">${faculty.slots} open slots</span>
-        </article>
-    `).join("");
+    const query = $("#facultySearch").value.trim().toLowerCase();
+    const filteredFaculty = facultyData.filter((faculty) =>
+        `${faculty.name} ${faculty.title} ${faculty.email} ${faculty.department} ${faculty.office}`.toLowerCase().includes(query)
+    );
+
+    $("#facultyOverview").innerHTML = filteredFaculty.length
+        ? filteredFaculty.map((faculty) => {
+            const index = facultyData.indexOf(faculty);
+            return `<article class="faculty-card">
+                <span class="faculty-card-avatar">${escapeHTML(initials(faculty.name.replace(/^(Dr\.|Prof\.)\s*/, "")))}</span>
+                <div class="faculty-card-info">
+                    <strong>${escapeHTML(faculty.name)}</strong>
+                    <small class="faculty-card-title">${escapeHTML(faculty.title)}</small>
+                    <small>${escapeHTML(faculty.department.startsWith("Department of ") ? faculty.department : `Department of ${faculty.department}`)}</small>
+                    <small>${escapeHTML(faculty.office)}</small>
+                </div>
+                <button class="faculty-menu-button" type="button" data-edit-faculty="${index}" aria-label="Edit ${escapeHTML(faculty.name)}" title="Edit faculty profile">⋯</button>
+            </article>`;
+        }).join("")
+        : `<p class="account-empty">No faculty match your search.</p>`;
 }
 
 function renderStudents() {
-    $("#studentsList").innerHTML = studentData.map((student) => `
-        <article class="data-card">
-            <span class="avatar student-avatar">${initials(student.name)}</span>
-            <div class="data-primary"><strong>${escapeHTML(student.name)}</strong><small>${escapeHTML(student.email)}</small></div>
-            <span class="data-secondary">${escapeHTML(student.program)}</span>
-            <span class="status-pill confirmed">${escapeHTML(student.year)}</span>
-        </article>
-    `).join("");
+    const query = $("#studentSearch").value.trim().toLowerCase();
+    const filteredStudents = studentData.filter((student) =>
+        `${student.name} ${student.email} ${student.studentNumber} ${student.program} ${student.year} ${student.section}`.toLowerCase().includes(query)
+    );
+
+    $("#studentsList").innerHTML = filteredStudents.length
+        ? filteredStudents.map((student) => {
+            const index = studentData.indexOf(student);
+            return `<tr>
+                <td class="student-name-cell"><strong>${escapeHTML(student.name)}</strong><small>${escapeHTML(student.email)}</small></td>
+                <td>${escapeHTML(student.studentNumber)}</td>
+                <td>${escapeHTML(student.program)}</td>
+                <td>${escapeHTML(student.year)} · ${escapeHTML(student.section)}</td>
+                <td><button class="student-edit-button" type="button" data-edit-student="${index}" aria-label="Edit ${escapeHTML(student.name)}">Edit</button></td>
+            </tr>`;
+        }).join("")
+        : `<tr><td class="student-empty" colspan="5">No students match your search.</td></tr>`;
 }
 
 function renderSystem() {
-    const settings = [
-        { title: "Consultation duration", value: "60 minutes", detail: "Default session length" },
-        { title: "Advance booking window", value: "14 days", detail: "How far ahead students can book" },
-        { title: "Check-in availability", value: "Enabled", detail: "Students can check in on appointment day" },
-        { title: "No-show marking", value: "Automatic", detail: "Missed sessions are marked after the slot ends" }
-    ];
+    $("#checkinWindow").value = systemPolicies.checkinWindow;
+    $("#defaultCapacity").value = systemPolicies.defaultCapacity;
+    $("#automaticNoShow").checked = systemPolicies.automaticNoShow;
+    $("#automaticCompletion").checked = systemPolicies.automaticCompletion;
+    updatePolicyStates();
+}
 
-    $("#systemList").innerHTML = settings.map((setting) => `
-        <article class="setting-card">
-            <span class="management-icon blue">⚙</span>
-            <div><strong>${escapeHTML(setting.title)}</strong><small>${escapeHTML(setting.detail)}</small></div>
-            <span class="setting-value">${escapeHTML(setting.value)}</span>
-        </article>
-    `).join("");
+function updatePolicyStates() {
+    $$("[data-enabled-for]").forEach((state) => {
+        const enabled = $(`#${state.dataset.enabledFor}`).checked;
+        state.textContent = enabled ? "Enabled" : "Disabled";
+        state.classList.toggle("disabled", !enabled);
+    });
 }
 
 function renderRecords() {
-    $("#recordsList").innerHTML = consultationData.map((record) => `
-        <article class="record-card">
-            <div class="record-person"><span class="avatar">${initials(record.student)}</span><div class="data-primary"><strong>${escapeHTML(record.student)}</strong><small>${escapeHTML(record.department)}</small></div></div>
-            <div class="data-primary"><strong>${escapeHTML(record.faculty)}</strong><small>Faculty member</small></div>
-            <div class="data-primary"><strong>${escapeHTML(formatDate(record.date))}</strong><small>${escapeHTML(record.time)}</small></div>
-            <span class="status-pill ${statusClass(record.status)}">${escapeHTML(record.status)}</span>
-        </article>
-    `).join("");
+    const query = $("#recordSearch").value.trim().toLowerCase();
+    const filteredRecords = consultationData.filter((record) =>
+        `${record.student} ${record.studentNumber} ${record.faculty} ${record.date} ${record.time} ${record.checkedIn ? "checked in" : "not checked in"} ${record.status}`.toLowerCase().includes(query)
+    );
+    $("#recordsList").innerHTML = filteredRecords.length
+        ? filteredRecords.map((record) => `
+            <tr>
+                <td class="record-student-cell"><strong>${escapeHTML(record.student)}</strong><small>${escapeHTML(record.studentNumber)}</small></td>
+                <td>${escapeHTML(record.faculty)}</td>
+                <td class="record-schedule-cell"><strong>${escapeHTML(new Date(`${record.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }))}</strong><small>${escapeHTML(record.time)}</small></td>
+                <td><span class="record-checkin ${record.checkedIn ? "checked" : "not-checked"}">${record.checkedIn ? "Checked In" : "Not Checked In"}</span></td>
+                <td><span class="record-status ${statusClass(record.status)}">${escapeHTML(record.status)}</span></td>
+            </tr>
+        `).join("")
+        : `<tr><td class="records-empty" colspan="5">No consultation records match your search.</td></tr>`;
 }
 $$(".nav-link").forEach((button) => {
     button.addEventListener("click", () => showPage(button.dataset.view));
@@ -179,6 +226,197 @@ $$(".nav-link").forEach((button) => {
 
 $$("[data-go]").forEach((button) => {
     button.addEventListener("click", () => showPage(button.dataset.go));
+});
+
+$("#accountSearch").addEventListener("input", renderAccounts);
+$("#addAccountButton").addEventListener("click", () => $("#accountDialog").showModal());
+$("#closeAccountDialog").addEventListener("click", () => $("#accountDialog").close());
+$("#cancelAccountDialog").addEventListener("click", () => $("#accountDialog").close());
+$("#accountForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = $("#accountName").value.trim();
+    const email = $("#accountEmail").value.trim();
+    const role = $("#accountRole").value;
+    if (accountData.some((account) => account.email.toLowerCase() === email.toLowerCase())) {
+        showToast("An account with this email already exists.");
+        $("#accountEmail").focus();
+        return;
+    }
+
+    accountData.push({ name, email, role, status: "Active" });
+    $("#accountForm").reset();
+    $("#accountDialog").close();
+    renderAccounts();
+    renderOverview();
+    showToast("Account added.");
+});
+$("#accountsList").addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-account-toggle]");
+    if (!toggle) return;
+    const account = accountData[Number(toggle.dataset.accountToggle)];
+    if (!account || account.role === "Administrator") return;
+    account.status = account.status === "Active" ? "Suspended" : "Active";
+    renderAccounts();
+    renderOverview();
+    showToast(`${account.name} ${account.status.toLowerCase()}.`);
+});
+
+function openFacultyDialog(index = null) {
+    editingFacultyIndex = index;
+    const faculty = index === null ? null : facultyData[index];
+    $("#facultyForm").reset();
+    $("#facultyDialogTitle").textContent = faculty ? "Edit faculty" : "Add faculty";
+    $("#saveFacultyButton").textContent = faculty ? "Save changes" : "Add faculty";
+    $("#facultyName").value = faculty?.name || "";
+    $("#facultyTitle").value = faculty?.title || "";
+    $("#facultyEmail").value = faculty?.email || "";
+    $("#facultyDepartment").value = faculty?.department.replace(/^Department of /, "") || "";
+    $("#facultyOffice").value = faculty?.office || "";
+    $("#facultyDialog").showModal();
+}
+
+$("#facultySearch").addEventListener("input", renderFacultyOverview);
+$("#addFacultyButton").addEventListener("click", () => openFacultyDialog());
+$("#closeFacultyDialog").addEventListener("click", () => $("#facultyDialog").close());
+$("#cancelFacultyDialog").addEventListener("click", () => $("#facultyDialog").close());
+$("#facultyOverview").addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-edit-faculty]");
+    if (editButton) openFacultyDialog(Number(editButton.dataset.editFaculty));
+});
+$("#facultyForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const faculty = {
+        name: $("#facultyName").value.trim(),
+        title: $("#facultyTitle").value.trim(),
+        email: $("#facultyEmail").value.trim(),
+        department: $("#facultyDepartment").value.trim(),
+        office: $("#facultyOffice").value.trim(),
+        workload: editingFacultyIndex === null ? 0 : facultyData[editingFacultyIndex].workload,
+        slots: editingFacultyIndex === null ? 0 : facultyData[editingFacultyIndex].slots
+    };
+    const duplicate = facultyData.some((item, index) =>
+        index !== editingFacultyIndex && item.email.toLowerCase() === faculty.email.toLowerCase()
+    );
+    if (duplicate) {
+        showToast("A faculty profile with this email already exists.");
+        $("#facultyEmail").focus();
+        return;
+    }
+
+    if (editingFacultyIndex === null) {
+        facultyData.push(faculty);
+        const accountName = `${faculty.title} ${faculty.name}`;
+        const existingAccount = accountData.find((account) => account.email.toLowerCase() === faculty.email.toLowerCase());
+        if (existingAccount) {
+            existingAccount.name = accountName;
+            existingAccount.role = "Faculty";
+        } else {
+            accountData.push({ name: accountName, email: faculty.email, role: "Faculty", status: "Active" });
+        }
+    } else {
+        const previousFaculty = facultyData[editingFacultyIndex];
+        facultyData[editingFacultyIndex] = faculty;
+        const linkedAccount = accountData.find((account) => account.email.toLowerCase() === previousFaculty.email.toLowerCase());
+        if (linkedAccount) {
+            linkedAccount.name = `${faculty.title} ${faculty.name}`;
+            linkedAccount.email = faculty.email;
+        }
+    }
+
+    $("#facultyDialog").close();
+    renderFacultyOverview();
+    renderOverview();
+    showToast(editingFacultyIndex === null ? "Faculty profile added." : "Faculty profile updated.");
+    editingFacultyIndex = null;
+});
+
+let editingStudentIndex = null;
+
+function openStudentDialog(index = null) {
+    editingStudentIndex = index;
+    const student = index === null ? null : studentData[index];
+    $("#studentForm").reset();
+    $("#studentDialogTitle").textContent = student ? "Edit student" : "Add student";
+    $("#saveStudentButton").textContent = student ? "Save changes" : "Add student";
+    $("#studentName").value = student?.name || "";
+    $("#studentEmail").value = student?.email || "";
+    $("#studentNumber").value = student?.studentNumber || "";
+    $("#studentProgram").value = student?.program || "";
+    $("#studentYear").value = student?.year || "";
+    $("#studentSection").value = student?.section || "";
+    $("#studentDialog").showModal();
+}
+
+$("#studentSearch").addEventListener("input", renderStudents);
+$("#addStudentButton").addEventListener("click", () => openStudentDialog());
+$("#closeStudentDialog").addEventListener("click", () => $("#studentDialog").close());
+$("#cancelStudentDialog").addEventListener("click", () => $("#studentDialog").close());
+$("#studentsList").addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-edit-student]");
+    if (editButton) openStudentDialog(Number(editButton.dataset.editStudent));
+});
+$("#studentForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const student = {
+        name: $("#studentName").value.trim(),
+        email: $("#studentEmail").value.trim(),
+        studentNumber: $("#studentNumber").value.trim(),
+        program: $("#studentProgram").value.trim(),
+        year: $("#studentYear").value.trim(),
+        section: $("#studentSection").value.trim()
+    };
+    const duplicate = studentData.some((item, index) =>
+        index !== editingStudentIndex &&
+        (item.email.toLowerCase() === student.email.toLowerCase() ||
+            item.studentNumber.toLowerCase() === student.studentNumber.toLowerCase())
+    );
+    if (duplicate) {
+        showToast("A student with this email or student number already exists.");
+        return;
+    }
+
+    if (editingStudentIndex === null) {
+        studentData.push(student);
+        const existingAccount = accountData.find((account) => account.email.toLowerCase() === student.email.toLowerCase());
+        if (existingAccount) {
+            existingAccount.name = student.name;
+            existingAccount.role = "Student";
+        } else {
+            accountData.push({ name: student.name, email: student.email, role: "Student", status: "Active" });
+        }
+    } else {
+        const previousStudent = studentData[editingStudentIndex];
+        studentData[editingStudentIndex] = student;
+        const linkedAccount = accountData.find((account) => account.email.toLowerCase() === previousStudent.email.toLowerCase());
+        if (linkedAccount) {
+            linkedAccount.name = student.name;
+            linkedAccount.email = student.email;
+        }
+    }
+
+    const isAddingStudent = editingStudentIndex === null;
+    $("#studentDialog").close();
+    renderStudents();
+    renderOverview();
+    showToast(isAddingStudent ? "Student profile added." : "Student profile updated.");
+    editingStudentIndex = null;
+});
+
+$("#recordSearch").addEventListener("input", renderRecords);
+
+$("#systemPolicyForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!event.currentTarget.reportValidity()) return;
+    systemPolicies.checkinWindow = Number($("#checkinWindow").value);
+    systemPolicies.defaultCapacity = Number($("#defaultCapacity").value);
+    systemPolicies.automaticNoShow = $("#automaticNoShow").checked;
+    systemPolicies.automaticCompletion = $("#automaticCompletion").checked;
+    renderSystem();
+    showToast("System policies saved.");
+});
+
+$("#systemPolicyForm").addEventListener("change", (event) => {
+    if (event.target.matches("#automaticNoShow, #automaticCompletion")) updatePolicyStates();
 });
 
 renderOverview();

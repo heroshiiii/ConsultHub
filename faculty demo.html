@@ -51,27 +51,79 @@
             </div>
         </section>
 
-        <section id="availability" class="page-view hidden">
-            <div class="page-heading"><span class="eyebrow">FACULTY WORKSPACE</span><h1>Manage Availability</h1><p>Create consultation slots for students to reserve.</p></div>
-            <form id="availabilityForm" class="panel availability-form">
+        <section id="availability" class="page-view availability-view hidden">
+            <div class="availability-heading">
+                <div class="page-heading">
+                    <span class="eyebrow">CONSULTHUB</span>
+                    <h1>Manage Availability</h1>
+                    <p>Create and manage your consultation schedule.</p>
+                </div>
+                <button id="toggleSlotForm" class="add-slot-button" type="button" aria-expanded="false" aria-controls="availabilityForm">
+                    <span aria-hidden="true">+</span> Add Slot
+                </button>
+            </div>
+            <form id="availabilityForm" class="panel availability-form hidden">
+                <h2 id="slotFormTitle">Add availability slot</h2>
                 <label>Date<input id="slotDate" type="date" required></label>
                 <label>Start time<input id="slotStart" type="time" required></label>
                 <label>End time<input id="slotEnd" type="time" required></label>
                 <label>Student capacity<input id="slotCapacity" type="number" min="1" max="20" value="5" required></label>
-                <button class="primary-button" type="submit">Add Availability</button>
+                <p id="slotFormMessage" class="form-message" role="status"></p>
+                <div class="slot-form-actions">
+                    <button id="cancelSlotForm" class="cancel-button" type="button">Cancel</button>
+                    <button id="saveSlot" class="add-slot-button" type="submit">Add Slot</button>
+                </div>
             </form>
-            <h2 class="section-title section-spaced">Your Available Slots</h2><div id="availabilityList" class="stack-list"></div>
+            <p id="availabilityCount" class="availability-count" aria-live="polite"></p>
+            <div id="availabilityList" class="availability-list"></div>
         </section>
 
         <section id="schedule" class="page-view hidden">
-            <div class="page-heading"><span class="eyebrow">FACULTY WORKSPACE</span><h1>Schedule</h1><p>Review consultation times and student attendance.</p></div>
-            <div id="fullSchedule" class="stack-list"></div>
+            <div class="page-heading schedule-heading">
+                <span class="eyebrow">CONSULTHUB</span>
+                <h1>Consultation Schedule</h1>
+                <p>Your upcoming consultation availability.</p>
+            </div>
+            <div class="schedule-week-toolbar">
+                <div class="week-navigation">
+                    <button class="week-arrow" type="button" data-week-shift="-1" aria-label="Previous week">‹</button>
+                    <strong id="scheduleWeekLabel"></strong>
+                    <button class="week-arrow" type="button" data-week-shift="1" aria-label="Next week">›</button>
+                </div>
+                <span id="scheduleSlotCount" class="schedule-slot-count"></span>
+            </div>
+            <div id="scheduleWeek" class="schedule-week" aria-label="Work week"></div>
+            <section class="upcoming-slots-section">
+                <h2>All Upcoming Slots</h2>
+                <div id="fullSchedule" class="schedule-groups"></div>
+            </section>
         </section>
 
         <section id="appointments" class="page-view hidden">
-            <div class="page-heading"><span class="eyebrow">FACULTY WORKSPACE</span><h1>Appointments</h1><p>Student reservations for your consultation hours.</p></div>
-            <div class="toolbar"><input id="studentSearch" type="search" placeholder="Search students..."><select id="attendanceFilter"><option value="all">All attendance</option><option value="Checked In">Checked In</option><option value="Not Checked In">Not Checked In</option></select></div>
-            <div id="appointmentsList" class="stack-list"></div>
+            <div class="page-heading appointments-heading">
+                <span class="eyebrow">CONSULTHUB</span>
+                <h1>Appointments</h1>
+                <p>All student reservations for your consultation slots.</p>
+            </div>
+            <div class="appointment-stats" aria-label="Appointment summary">
+                <article class="appointment-stat"><strong id="appointmentTotal">0</strong><small>Total</small></article>
+                <article class="appointment-stat checked-stat"><strong id="appointmentChecked">0</strong><small>Checked In</small></article>
+                <article class="appointment-stat not-checked-stat"><strong id="appointmentNotChecked">0</strong><small>Not Checked In</small></article>
+                <article class="appointment-stat no-show-stat"><strong id="appointmentNoShow">0</strong><small>No Show</small></article>
+            </div>
+            <div class="appointments-toolbar">
+                <label class="appointment-search">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="studentSearch" type="search" placeholder="Search student name or ID..." aria-label="Search student name or ID">
+                </label>
+                <span class="filter-icon" aria-hidden="true">▽</span>
+                <div class="appointment-filters" aria-label="Filter by check-in status">
+                    <button class="appointment-filter active" type="button" data-appointment-filter="all">All</button>
+                    <button class="appointment-filter" type="button" data-appointment-filter="checked">Checked In</button>
+                    <button class="appointment-filter" type="button" data-appointment-filter="not-checked">Not Checked In</button>
+                </div>
+            </div>
+            <div id="appointmentsList" class="appointment-groups"></div>
         </section>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

@@ -115,50 +115,220 @@
         </section>
 
         <section id="accounts" class="page-view hidden">
-            <div class="page-heading">
-                <span class="eyebrow">ADMIN WORKSPACE</span>
+            <div class="page-heading accounts-heading">
+                <span class="eyebrow">ADMINISTRATION</span>
                 <h1>User accounts</h1>
-                <p>Manage portal access and account status across roles.</p>
+                <p>Review access, roles, and account status for every ConsultHub user.</p>
             </div>
-            <div id="accountsList" class="data-list"></div>
+            <section class="accounts-panel" aria-label="User account management">
+                <div class="accounts-toolbar">
+                    <label class="account-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="accountSearch" type="search" placeholder="Search accounts" aria-label="Search accounts">
+                    </label>
+                    <button id="addAccountButton" class="add-account-button" type="button"><span aria-hidden="true">♙</span> Add account</button>
+                </div>
+                <div id="accountsList" class="account-list"></div>
+            </section>
         </section>
 
         <section id="faculty" class="page-view hidden">
-            <div class="page-heading">
-                <span class="eyebrow">ADMIN WORKSPACE</span>
-                <h1>Faculty information</h1>
-                <p>Maintain departments, offices, and faculty profiles.</p>
+            <div class="page-heading faculty-heading">
+                <span class="eyebrow">DIRECTORY</span>
+                <h1>Faculty information management</h1>
+                <p>Maintain faculty profiles, departments, and consultation locations.</p>
             </div>
-            <div id="facultyOverview" class="data-list"></div>
+            <div class="faculty-toolbar">
+                <label class="faculty-search">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="facultySearch" type="search" placeholder="Search faculty" aria-label="Search faculty">
+                </label>
+                <button id="addFacultyButton" class="add-account-button" type="button"><span aria-hidden="true">▣</span> Add faculty</button>
+            </div>
+            <div id="facultyOverview" class="faculty-grid"></div>
         </section>
 
         <section id="students" class="page-view hidden">
-            <div class="page-heading">
-                <span class="eyebrow">ADMIN WORKSPACE</span>
-                <h1>Student information</h1>
-                <p>Review student programs and year levels.</p>
+            <div class="page-heading students-heading">
+                <span class="eyebrow">DIRECTORY</span>
+                <h1>Student information management</h1>
+                <p>View and maintain student academic information used for consultations.</p>
             </div>
-            <div id="studentsList" class="data-list"></div>
+            <section class="students-panel" aria-label="Student information">
+                <div class="students-toolbar">
+                    <label class="student-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="studentSearch" type="search" placeholder="Search students" aria-label="Search students">
+                    </label>
+                    <button id="addStudentButton" class="add-account-button" type="button"><span aria-hidden="true">♧</span> Add student</button>
+                </div>
+                <div class="student-table-wrap">
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Student</th>
+                                <th scope="col">Student No.</th>
+                                <th scope="col">Program</th>
+                                <th scope="col">Level</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsList"></tbody>
+                    </table>
+                </div>
+            </section>
         </section>
 
         <section id="system" class="page-view hidden">
-            <div class="page-heading">
-                <span class="eyebrow">ADMIN WORKSPACE</span>
-                <h1>System information</h1>
-                <p>Review the consultation policies and limits used in this demo.</p>
+            <div class="page-heading system-heading">
+                <span class="eyebrow">CONFIGURATION</span>
+                <h1>System information management</h1>
+                <p>Manage the rules that keep reservations and consultations consistent.</p>
             </div>
-            <div id="systemList" class="settings-grid"></div>
+            <div class="system-layout">
+                <section class="system-policy-card">
+                    <header class="system-card-heading">
+                        <span class="system-card-icon" aria-hidden="true">☷</span>
+                        <span><strong>Consultation policies</strong><small>Applied across both portals</small></span>
+                    </header>
+                    <form id="systemPolicyForm">
+                        <div class="policy-fields">
+                            <label>Check-in window
+                                <span class="number-input-wrap"><input id="checkinWindow" type="number" min="0" max="180" required><small>minutes before</small></span>
+                            </label>
+                            <label>Default slot capacity
+                                <span class="number-input-wrap"><input id="defaultCapacity" type="number" min="1" max="100" required></span>
+                            </label>
+                        </div>
+                        <label class="policy-toggle-row">
+                            <input id="automaticNoShow" type="checkbox">
+                            <span class="policy-toggle-copy"><strong>Automatic no-show marking</strong><small>Mark absent students after the consultation period.</small></span>
+                            <span class="policy-toggle-state" data-enabled-for="automaticNoShow"></span>
+                        </label>
+                        <label class="policy-toggle-row">
+                            <input id="automaticCompletion" type="checkbox">
+                            <span class="policy-toggle-copy"><strong>Automatic completion</strong><small>Complete attended consultations after their end time.</small></span>
+                            <span class="policy-toggle-state" data-enabled-for="automaticCompletion"></span>
+                        </label>
+                        <button class="add-account-button save-policy-button" type="submit">Save changes</button>
+                    </form>
+                </section>
+                <aside class="system-sidebar">
+                    <section class="system-health-card">
+                        <h2><span aria-hidden="true">⌁</span> System health</h2>
+                        <div><span>Authentication</span><strong>Operational</strong></div>
+                        <div><span>Database</span><strong>Operational</strong></div>
+                        <div><span>Notifications</span><strong>Operational</strong></div>
+                    </section>
+                    <section class="academic-term-card">
+                        <small>Current academic term</small>
+                        <strong>First Semester · 2024–2025</strong>
+                    </section>
+                </aside>
+            </div>
         </section>
 
         <section id="records" class="page-view hidden">
-            <div class="page-heading">
-                <span class="eyebrow">ADMIN WORKSPACE</span>
-                <h1>Consultation records</h1>
-                <p>Monitor reservations and attendance outcomes.</p>
+            <div class="page-heading records-heading">
+                <span class="eyebrow">MONITORING</span>
+                <h1>Consultation record monitoring</h1>
+                <p>Track reservations, attendance, and final consultation outcomes.</p>
             </div>
-            <div id="recordsList" class="data-list"></div>
+            <section class="records-panel" aria-label="Consultation records">
+                <div class="records-toolbar">
+                    <label class="record-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="recordSearch" type="search" placeholder="Search consultation records" aria-label="Search consultation records">
+                    </label>
+                    <span class="records-updated"><span aria-hidden="true">◷</span> Updated just now</span>
+                </div>
+                <div class="records-table-wrap">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Student</th>
+                                <th scope="col">Faculty</th>
+                                <th scope="col">Schedule</th>
+                                <th scope="col">Check-in</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsList"></tbody>
+                    </table>
+                </div>
+            </section>
         </section>
     </main>
+
+    <dialog id="accountDialog" class="account-dialog">
+        <form id="accountForm">
+            <div class="dialog-heading">
+                <div>
+                    <span class="eyebrow">ADMINISTRATION</span>
+                    <h2>Add account</h2>
+                </div>
+                <button id="closeAccountDialog" class="dialog-close" type="button" aria-label="Close">×</button>
+            </div>
+            <label>Name<input id="accountName" name="name" required autocomplete="name"></label>
+            <label>Email<input id="accountEmail" name="email" type="email" required autocomplete="email"></label>
+            <label>Role
+                <select id="accountRole" name="role" required>
+                    <option>Student</option>
+                    <option>Faculty</option>
+                    <option>Administrator</option>
+                </select>
+            </label>
+            <div class="dialog-actions">
+                <button id="cancelAccountDialog" class="cancel-button" type="button">Cancel</button>
+                <button class="add-account-button" type="submit">Add account</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="facultyDialog" class="account-dialog faculty-dialog">
+        <form id="facultyForm">
+            <div class="dialog-heading">
+                <div>
+                    <span class="eyebrow">DIRECTORY</span>
+                    <h2 id="facultyDialogTitle">Add faculty</h2>
+                </div>
+                <button id="closeFacultyDialog" class="dialog-close" type="button" aria-label="Close">×</button>
+            </div>
+            <label>Name<input id="facultyName" name="name" required autocomplete="name"></label>
+            <label>Title<input id="facultyTitle" name="title" required placeholder="e.g. Associate Professor"></label>
+            <label>Email<input id="facultyEmail" name="email" type="email" required autocomplete="email"></label>
+            <label>Department<input id="facultyDepartment" name="department" required></label>
+            <label>Office<input id="facultyOffice" name="office" required></label>
+            <div class="dialog-actions">
+                <button id="cancelFacultyDialog" class="cancel-button" type="button">Cancel</button>
+                <button id="saveFacultyButton" class="add-account-button" type="submit">Add faculty</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="studentDialog" class="account-dialog student-dialog">
+        <form id="studentForm">
+            <div class="dialog-heading">
+                <div>
+                    <span class="eyebrow">DIRECTORY</span>
+                    <h2 id="studentDialogTitle">Add student</h2>
+                </div>
+                <button id="closeStudentDialog" class="dialog-close" type="button" aria-label="Close">×</button>
+            </div>
+            <label>Name<input id="studentName" name="name" required autocomplete="name"></label>
+            <label>Email<input id="studentEmail" name="email" type="email" required autocomplete="email"></label>
+            <label>Student number<input id="studentNumber" name="studentNumber" required></label>
+            <label>Program<input id="studentProgram" name="program" required></label>
+            <div class="student-form-row">
+                <label>Year<input id="studentYear" name="year" required placeholder="e.g. Year 3"></label>
+                <label>Section<input id="studentSection" name="section" required placeholder="e.g. 3A"></label>
+            </div>
+            <div class="dialog-actions">
+                <button id="cancelStudentDialog" class="cancel-button" type="button">Cancel</button>
+                <button id="saveStudentButton" class="add-account-button" type="submit">Add student</button>
+            </div>
+        </form>
+    </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

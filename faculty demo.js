@@ -3,21 +3,41 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const today = new Date();
 const localDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-");
-const dateLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+const scheduleWeekStart = new Date(today);
+scheduleWeekStart.setDate(today.getDate() + (today.getDay() === 0 ? 1 : today.getDay() === 6 ? 2 : 1 - today.getDay()));
+scheduleWeekStart.setHours(12, 0, 0, 0);
 const appointments = [
-    { name: "Andrea Reyes", time: "10:00 AM – 11:00 AM", checked: true, initials: "AR" },
-    { name: "Carlo Mendoza", time: "10:00 AM – 11:00 AM", checked: false, initials: "CM" },
-    { name: "Sofia Villanueva", time: "10:00 AM – 11:00 AM", checked: true, initials: "SV" },
-    { name: "Marco Tan", time: "2:00 PM – 3:00 PM", checked: false, initials: "MT" }
+    { name: "Juan dela Cruz", studentId: "2021-00123", program: "BS Computer Science", time: "2:00 PM – 3:00 PM", checked: true, checkedAt: "2:03 PM", status: "Completed", initials: "Jd", slotId: null, date: "2026-09-11" },
+    { name: "Juan dela Cruz", studentId: "2021-00123", program: "BS Computer Science", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:47 AM", status: "Completed", initials: "Jd", slotId: null, date: "2026-09-25" },
+    { name: "Andrea Reyes", studentId: "2022-00456", program: "BS Information Technology", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:42 AM", status: "Confirmed", initials: "AR", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
+    { name: "Carlo Mendoza", studentId: "2020-00789", program: "BS Computer Science", time: "10:00 AM – 11:00 AM", checked: false, status: "Confirmed", initials: "CM", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
+    { name: "Sofia Villanueva", studentId: "2023-00321", program: "BS Mathematics", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:55 AM", status: "Confirmed", initials: "SV", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
+    { name: "Marco Tan", studentId: "2021-00654", program: "BS Computer Science", time: "2:00 PM – 3:00 PM", checked: false, status: "Confirmed", initials: "MT", slotId: 3, date: dateOffset(scheduleWeekStart, 1) }
 ];
+let displayedWeekStart = new Date(scheduleWeekStart);
+let selectedScheduleDate = null;
+let activeAppointmentFilter = "all";
 let slots = [
-    { date: localDate, start: "10:00 AM", end: "11:00 AM", capacity: 5, booked: 3 },
-    { date: localDate, start: "11:00 AM", end: "12:00 PM", capacity: 5, booked: 5 }
+    { id: 1, date: dateOffset(scheduleWeekStart, 0), start: "10:00 AM", end: "11:00 AM", capacity: 5, booked: 3 },
+    { id: 2, date: dateOffset(scheduleWeekStart, 0), start: "11:00 AM", end: "12:00 PM", capacity: 5, booked: 5 },
+    { id: 3, date: dateOffset(scheduleWeekStart, 1), start: "2:00 PM", end: "3:00 PM", capacity: 5, booked: 1 },
+    { id: 4, date: dateOffset(scheduleWeekStart, 1), start: "3:00 PM", end: "4:00 PM", capacity: 5, booked: 0 }
 ];
 let toastTimer;
+let editingSlotId = null;
+
+function dateOffset(startDate, offset) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + offset);
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
 
 function escapeHTML(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+}
+
+function statusClass(status) {
+    return String(status).toLowerCase().replace(/\s+/g, "-");
 }
 
 function timeLabel(value) {
@@ -26,8 +46,21 @@ function timeLabel(value) {
     return `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
 }
 
+function timeValue(value) {
+    const match = value.match(/^(\d{1,2}):(\d{2})\s(AM|PM)$/);
+    if (!match) return "";
+
+    let hour = Number(match[1]) % 12;
+    if (match[3] === "PM") hour += 12;
+    return `${String(hour).padStart(2, "0")}:${match[2]}`;
+}
+
 function slotDateLabel(date) {
     return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+}
+
+function shortDateLabel(date) {
+    return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 function showToast(message) {
@@ -77,30 +110,182 @@ function renderDashboard() {
 }
 
 function renderAvailability() {
-    $("#availabilityList").innerHTML = slots.length
-        ? slots.map((slot, index) => `<article class="appointment-card"><span class="student-info"><strong>${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</strong><small>${escapeHTML(slotDateLabel(slot.date))} · ${slot.booked}/${slot.capacity} students booked</small></span><button class="remove-button" data-remove-slot="${index}">Remove</button></article>`).join("")
-        : `<p class="panel">No availability slots yet. Add one above to let students book.</p>`;
+    const sortedSlots = [...slots].sort((a, b) =>
+        a.date.localeCompare(b.date) || timeValue(a.start).localeCompare(timeValue(b.start))
+    );
+    $("#availabilityCount").textContent =
+        `${sortedSlots.length} ${sortedSlots.length === 1 ? "slot" : "slots"} configured`;
+
+    $("#availabilityList").innerHTML = sortedSlots.length
+        ? sortedSlots.map((slot) => {
+            const percent = Math.min(100, Math.round(slot.booked / slot.capacity * 100));
+            const full = slot.booked >= slot.capacity;
+            return `<article class="availability-card">
+                <div class="availability-card-top">
+                    <div class="availability-slot-info">
+                        <strong><span aria-hidden="true">▦</span> ${escapeHTML(slotDateLabel(slot.date))}</strong>
+                        <div class="availability-slot-meta">
+                            <span><span aria-hidden="true">◷</span> ${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</span>
+                            <span><span aria-hidden="true">♙</span> ${slot.capacity} students max</span>
+                        </div>
+                    </div>
+                    <div class="availability-actions">
+                        <button class="slot-action edit" type="button" data-edit-slot="${slot.id}"
+                            aria-label="Edit slot on ${escapeHTML(slotDateLabel(slot.date))}">✎</button>
+                        <button class="slot-action delete" type="button" data-delete-slot="${slot.id}"
+                            aria-label="Delete slot on ${escapeHTML(slotDateLabel(slot.date))}">⌫</button>
+                    </div>
+                </div>
+                <div class="availability-progress-row">
+                    <div class="availability-progress ${full ? "full" : ""}" role="progressbar"
+                        aria-label="Booked seats" aria-valuemin="0" aria-valuemax="${slot.capacity}"
+                        aria-valuenow="${slot.booked}">
+                        <span style="width:${percent}%"></span>
+                    </div>
+                    <span class="reservation-count">${slot.booked}/${slot.capacity} reserved</span>
+                    ${full ? `<span class="full-badge">Full</span>` : ""}
+                </div>
+            </article>`;
+        }).join("")
+        : `<p class="empty-state">No availability slots yet. Add a slot to let students book.</p>`;
 }
 
 function renderSchedule() {
-    $("#fullSchedule").innerHTML = slots.map(scheduleCard).join("");
+    const weekDates = Array.from({ length: 5 }, (_, index) => dateOffset(displayedWeekStart, index));
+    const visibleSlots = slots
+        .filter((slot) => weekDates.includes(slot.date))
+        .sort((a, b) => a.date.localeCompare(b.date) || timeValue(a.start).localeCompare(timeValue(b.start)));
+    const rangeStart = new Date(`${weekDates[0]}T12:00:00`);
+    const rangeEnd = new Date(`${weekDates[4]}T12:00:00`);
+    const dateFormat = { month: "short", day: "numeric" };
+    const rangeText = `${rangeStart.toLocaleDateString("en-US", dateFormat)} – ${rangeEnd.toLocaleDateString("en-US", { ...dateFormat, year: "numeric" })}`;
+
+    $("#scheduleWeekLabel").textContent = rangeText;
+    $("#scheduleSlotCount").textContent = `${visibleSlots.length} total ${visibleSlots.length === 1 ? "slot" : "slots"}`;
+
+    if (!selectedScheduleDate || !weekDates.includes(selectedScheduleDate)) {
+        selectedScheduleDate = visibleSlots.length ? visibleSlots[0].date : weekDates[0];
+    }
+
+    $("#scheduleWeek").innerHTML = weekDates.map((date) => {
+        const daySlots = visibleSlots.filter((slot) => slot.date === date);
+        const dateObject = new Date(`${date}T12:00:00`);
+        const weekday = dateObject.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+        return `<button class="schedule-day ${date === selectedScheduleDate ? "selected" : ""}"
+            type="button" data-schedule-date="${date}" aria-pressed="${date === selectedScheduleDate}">
+            <span class="schedule-day-name">${weekday}</span>
+            <strong>${dateObject.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</strong>
+            <span class="schedule-day-slots">
+                ${daySlots.length
+                    ? daySlots.map((slot) => `<span class="schedule-day-slot ${slot.booked >= slot.capacity ? "full" : ""}">
+                        <strong>${escapeHTML(slot.start)}</strong>
+                        <small>${slot.booked}/${slot.capacity} students</small>
+                    </span>`).join("")
+                    : `<span class="no-day-slots">No slots</span>`}
+            </span>
+        </button>`;
+    }).join("");
+
+    $("#fullSchedule").innerHTML = visibleSlots.length
+        ? weekDates.filter((date) => visibleSlots.some((slot) => slot.date === date)).map((date) => {
+            const dateSlots = visibleSlots.filter((slot) => slot.date === date);
+            return `<section class="schedule-date-group" id="schedule-date-${date}">
+                <h3><span aria-hidden="true">▦</span> ${escapeHTML(slotDateLabel(date))}</h3>
+                <div class="schedule-slot-list">
+                    ${dateSlots.map((slot) => {
+                        const percent = Math.min(100, Math.round(slot.booked / slot.capacity * 100));
+                        const full = slot.booked >= slot.capacity;
+                        const checkedIn = appointments.filter((student) => student.slotId === slot.id && student.checked).length;
+                        const spotsLeft = slot.capacity - slot.booked;
+                        return `<article class="schedule-slot-row">
+                            <span class="schedule-slot-time"><span aria-hidden="true">◷</span>${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</span>
+                            <span class="schedule-reserved"><span aria-hidden="true">♙</span>${slot.booked}/${slot.capacity} reserved</span>
+                            ${full
+                                ? `<span class="schedule-full-badge">Full</span>`
+                                : `<span class="schedule-open-badge">${spotsLeft} ${spotsLeft === 1 ? "slot" : "slots"} left</span>`}
+                            <span class="schedule-checked-in">${checkedIn} checked in</span>
+                            <span class="schedule-row-progress ${full ? "full" : ""}" role="progressbar"
+                                aria-label="Booked seats" aria-valuemin="0" aria-valuemax="${slot.capacity}"
+                                aria-valuenow="${slot.booked}"><span style="width:${percent}%"></span></span>
+                            <button class="view-students-button" type="button" data-show-slot-students="${slot.id}">View students →</button>
+                        </article>`;
+                    }).join("")}
+                </div>
+            </section>`;
+        }).join("")
+        : `<p class="schedule-empty">No consultation slots scheduled this week.</p>`;
 }
+
+let appointmentSlotFilter = null;
 
 function renderAppointments() {
     const search = $("#studentSearch").value.trim().toLowerCase();
-    const filter = $("#attendanceFilter").value;
-    const filtered = appointments.filter((student) => student.name.toLowerCase().includes(search) &&
-        (filter === "all" || (student.checked ? "Checked In" : "Not Checked In") === filter));
-    $("#appointmentsList").innerHTML = filtered.length
-        ? filtered.map((student) => {
-            const index = appointments.indexOf(student);
-            return `<article class="appointment-card"><span class="initials">${escapeHTML(student.initials)}</span><span class="student-info"><strong>${escapeHTML(student.name)}</strong><small>${escapeHTML(student.time)} · ${dateLabel}</small></span><span class="badge ${student.checked ? "" : "pending"}">${student.checked ? "● Checked In" : "● Not Checked In"}</span><button data-toggle-checkin="${index}">${student.checked ? "Undo check-in" : "Mark present"}</button></article>`;
+    const relevantAppointments = appointments.filter((student) =>
+        appointmentSlotFilter === null || student.slotId === appointmentSlotFilter
+    );
+    const checkedCount = relevantAppointments.filter((student) => student.checked).length;
+    const noShowCount = relevantAppointments.filter((student) => student.status === "No Show").length;
+    $("#appointmentTotal").textContent = relevantAppointments.length;
+    $("#appointmentChecked").textContent = checkedCount;
+    $("#appointmentNotChecked").textContent = relevantAppointments.filter((student) => !student.checked && student.status !== "No Show").length;
+    $("#appointmentNoShow").textContent = noShowCount;
+
+    const filtered = appointments.filter((student) =>
+        (appointmentSlotFilter === null || student.slotId === appointmentSlotFilter) &&
+        `${student.name} ${student.studentId} ${student.program}`.toLowerCase().includes(search) &&
+        (activeAppointmentFilter === "all" ||
+            (activeAppointmentFilter === "checked" && student.checked) ||
+            (activeAppointmentFilter === "not-checked" && !student.checked && student.status !== "No Show")));
+
+    const grouped = filtered.reduce((groups, student) => {
+        (groups[student.date] ||= []).push(student);
+        return groups;
+    }, {});
+    const dates = Object.keys(grouped).sort();
+
+    $("#appointmentsList").innerHTML = dates.length
+        ? dates.map((date) => {
+            const dayAppointments = grouped[date];
+            const checkedIn = dayAppointments.filter((student) => student.checked).length;
+            const dateObject = new Date(`${date}T12:00:00`);
+            const dayBadge = dateObject.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+            const dayNumber = dateObject.toLocaleDateString("en-US", { day: "numeric" });
+            return `<section class="appointment-date-group">
+                <header class="appointment-date-heading">
+                    <span class="appointment-date-icon"><small>${dayBadge}</small><strong>${dayNumber}</strong></span>
+                    <span class="appointment-date-title">
+                        <strong>${escapeHTML(slotDateLabel(date))}</strong>
+                        <small>${dayAppointments.length} ${dayAppointments.length === 1 ? "appointment" : "appointments"}</small>
+                    </span>
+                    <span class="date-checkin-summary">♙ &nbsp;${checkedIn} checked in</span>
+                </header>
+                <div class="appointment-student-list">
+                    ${dayAppointments.map((student) => {
+                        const index = appointments.indexOf(student);
+                        return `<article class="appointment-student-row">
+                            <span class="appointment-student-avatar">${escapeHTML(student.initials)}</span>
+                            <span class="appointment-student-info">
+                                <strong>${escapeHTML(student.name)}</strong>
+                                <small>${escapeHTML(student.studentId)} · ${escapeHTML(student.program)}</small>
+                            </span>
+                            <span class="appointment-time"><span aria-hidden="true">◷</span>${escapeHTML(student.time)}</span>
+                            <span class="appointment-status ${statusClass(student.status)}">${escapeHTML(student.status)}</span>
+                            <button class="checkin-status ${student.checked ? "checked" : "not-checked"}"
+                                type="button" data-toggle-checkin="${index}"
+                                aria-label="${student.checked ? "Undo check-in for" : "Mark present"} ${escapeHTML(student.name)}">
+                                <span aria-hidden="true">●</span>${student.checked ? "Checked In" : "Not Checked In"}
+                            </button>
+                            ${student.checkedAt ? `<span class="checked-at">${escapeHTML(student.checkedAt)}</span>` : ""}
+                            <span class="row-chevron" aria-hidden="true">›</span>
+                        </article>`;
+                    }).join("")}
+                </div>
+            </section>`;
         }).join("")
-        : `<p class="panel">No appointments match your search.</p>`;
+        : `<p class="appointments-empty">No appointments match your search or filter.</p>`;
 }
 
 $("#slotDate").min = localDate;
-$("#slotDate").value = localDate;
 $("#slotDate").addEventListener("change", (event) => {
     const chosen = new Date(`${event.target.value}T12:00:00`);
     if (!Number.isNaN(chosen.getTime())) {
@@ -109,46 +294,156 @@ $("#slotDate").addEventListener("change", (event) => {
     }
 });
 
-$$("[data-view]").forEach((button) => button.addEventListener("click", () => showPage(button.dataset.view)));
+$$("[data-view]").forEach((button) => button.addEventListener("click", () => {
+    if (button.dataset.view === "appointments") appointmentSlotFilter = null;
+    showPage(button.dataset.view);
+}));
 $$("[data-go]").forEach((button) => button.addEventListener("click", () => showPage(button.dataset.go)));
+$$("[data-appointment-filter]").forEach((button) => button.addEventListener("click", () => {
+    activeAppointmentFilter = button.dataset.appointmentFilter;
+    $$("[data-appointment-filter]").forEach((filterButton) => {
+        filterButton.classList.toggle("active", filterButton === button);
+    });
+    renderAppointments();
+}));
+
+$$("[data-week-shift]").forEach((button) => button.addEventListener("click", () => {
+    displayedWeekStart.setDate(displayedWeekStart.getDate() + Number(button.dataset.weekShift) * 7);
+    selectedScheduleDate = null;
+    renderSchedule();
+}));
+
+$("#scheduleWeek").addEventListener("click", (event) => {
+    const dayButton = event.target.closest("[data-schedule-date]");
+    if (!dayButton) return;
+
+    selectedScheduleDate = dayButton.dataset.scheduleDate;
+    renderSchedule();
+    document.querySelector(`#schedule-date-${selectedScheduleDate}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+    });
+});
+
+$("#fullSchedule").addEventListener("click", (event) => {
+    const studentsButton = event.target.closest("[data-show-slot-students]");
+    if (!studentsButton) return;
+
+    appointmentSlotFilter = Number(studentsButton.dataset.showSlotStudents);
+    showPage("appointments");
+});
+function openSlotForm(slot = null) {
+    editingSlotId = slot ? slot.id : null;
+    $("#slotFormTitle").textContent = slot ? "Edit availability slot" : "Add availability slot";
+    $("#saveSlot").textContent = slot ? "Save Changes" : "Add Slot";
+    $("#slotDate").value = slot?.date || dateOffset(scheduleWeekStart, 0);
+    $("#slotStart").value = slot ? timeValue(slot.start) : "";
+    $("#slotEnd").value = slot ? timeValue(slot.end) : "";
+    $("#slotCapacity").value = slot?.capacity || 5;
+    $("#slotFormMessage").textContent = "";
+    $("#availabilityForm").classList.remove("hidden");
+    $("#toggleSlotForm").setAttribute("aria-expanded", "true");
+    $("#slotDate").focus();
+}
+
+function closeSlotForm() {
+    $("#availabilityForm").classList.add("hidden");
+    $("#availabilityForm").reset();
+    $("#slotDate").value = dateOffset(scheduleWeekStart, 0);
+    $("#slotCapacity").value = "5";
+    $("#slotFormMessage").textContent = "";
+    $("#toggleSlotForm").setAttribute("aria-expanded", "false");
+    editingSlotId = null;
+}
+
+$("#toggleSlotForm").addEventListener("click", () => {
+    if ($("#availabilityForm").classList.contains("hidden")) {
+        openSlotForm();
+    } else {
+        closeSlotForm();
+    }
+});
+
+$("#cancelSlotForm").addEventListener("click", closeSlotForm);
+
 $("#availabilityForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const start = $("#slotStart").value;
     const end = $("#slotEnd").value;
     const date = $("#slotDate").value;
     const capacity = Number($("#slotCapacity").value);
-    if (!date || !start || !end || start >= end || capacity < 1) {
-        showToast("Enter a valid date, time range, and capacity.");
+    const existing = slots.find((slot) => slot.id === editingSlotId);
+    const message = $("#slotFormMessage");
+
+    if (!date || !start || !end || start >= end || !Number.isInteger(capacity) ||
+        capacity < 1 || capacity > 20 || (existing && capacity < existing.booked)) {
+        message.textContent = existing && capacity < existing.booked
+            ? `Capacity cannot be lower than the ${existing.booked} existing reservations.`
+            : "Enter a valid date, time range, and capacity from 1 to 20.";
         return;
     }
-    slots.push({ date, start: timeLabel(start), end: timeLabel(end), capacity, booked: 0 });
-    slots.sort((a, b) => a.start.localeCompare(b.start));
-    event.target.reset();
-    $("#slotDate").value = localDate;
-    $("#slotCapacity").value = "5";
+
+    const duplicate = slots.some((slot) =>
+        slot.id !== editingSlotId && slot.date === date && timeValue(slot.start) === start
+    );
+    if (duplicate) {
+        message.textContent = "A slot already exists at this date and start time.";
+        return;
+    }
+
+    if (existing) {
+        Object.assign(existing, { date, start: timeLabel(start), end: timeLabel(end), capacity });
+    } else {
+        slots.push({
+            id: Date.now(),
+            date,
+            start: timeLabel(start),
+            end: timeLabel(end),
+            capacity,
+            booked: 0
+        });
+    }
+
+    closeSlotForm();
     renderAvailability();
     renderDashboard();
-    showToast("Availability slot added.");
+    showToast(existing ? "Availability slot updated." : "Availability slot added.");
 });
 
 document.addEventListener("click", (event) => {
-    const remove = event.target.closest("[data-remove-slot]");
-    if (remove) {
-        slots.splice(Number(remove.dataset.removeSlot), 1);
+    const editButton = event.target.closest("[data-edit-slot]");
+    if (editButton) {
+        const slot = slots.find((item) => item.id === Number(editButton.dataset.editSlot));
+        if (slot) openSlotForm(slot);
+        return;
+    }
+
+    const deleteButton = event.target.closest("[data-delete-slot]");
+    if (deleteButton) {
+        const slot = slots.find((item) => item.id === Number(deleteButton.dataset.deleteSlot));
+        if (!slot) return;
+        if (slot.booked > 0) {
+            showToast("Slots with existing reservations cannot be deleted.");
+            return;
+        }
+        slots = slots.filter((item) => item.id !== slot.id);
         renderAvailability();
         renderDashboard();
+        showToast("Availability slot deleted.");
         return;
     }
     const checkin = event.target.closest("[data-toggle-checkin]");
     if (checkin) {
         const student = appointments[Number(checkin.dataset.toggleCheckin)];
         student.checked = !student.checked;
+        student.checkedAt = student.checked
+            ? new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+            : undefined;
         renderAppointments();
         renderDashboard();
         showToast(student.checked ? "Student marked present." : "Check-in undone.");
     }
 });
 $("#studentSearch").addEventListener("input", renderAppointments);
-$("#attendanceFilter").addEventListener("change", renderAppointments);
 
 renderDashboard();
