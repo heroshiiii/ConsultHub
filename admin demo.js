@@ -1,48 +1,14 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-const accountData = [
-    { name: "Juan dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Andrea Reyes", email: "andrea.reyes@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Carlo Mendoza", email: "carlo.mendoza@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Sofia Villanueva", email: "sofia.villanueva@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Marco Tan", email: "marco.tan@student.slsu.edu.ph", role: "Student", status: "Active" },
-    { name: "Dr. Maria Santos", email: "maria.santos@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Prof. Ramon Cruz", email: "ramon.cruz@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Dr. Anna Lim", email: "anna.lim@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "Prof. Joel Reyes", email: "joel.reyes@slsu.edu.ph", role: "Faculty", status: "Active" },
-    { name: "System Administrator", email: "admin@slsu.edu.ph", role: "Administrator", status: "Active" }
-];
-
-const facultyData = [
-    { name: "Dr. Maria Santos", title: "Associate Professor", email: "maria.santos@slsu.edu.ph", department: "Computer Science", office: "CS Building Room 204", workload: 8, slots: 5 },
-    { name: "Prof. Ramon Cruz", title: "Assistant Professor", email: "ramon.cruz@slsu.edu.ph", department: "Mathematics", office: "Math Building Room 108", workload: 7, slots: 3 },
-    { name: "Dr. Anna Lim", title: "Professor", email: "anna.lim@slsu.edu.ph", department: "Information Technology", office: "IT Building Room 312", workload: 9, slots: 4 },
-    { name: "Prof. Joel Reyes", title: "Instructor", email: "joel.reyes@slsu.edu.ph", department: "English", office: "Liberal Arts Building Room 105", workload: 5, slots: 2 }
-];
-
-const studentData = [
-    { name: "Juan dela Cruz", email: "juan.delacruz@student.slsu.edu.ph", studentNumber: "2021-00123", program: "BS Computer Science", year: "Year 3", section: "3A" },
-    { name: "Andrea Reyes", email: "andrea.reyes@student.slsu.edu.ph", studentNumber: "2022-00456", program: "BS Information Technology", year: "Year 2", section: "2B" },
-    { name: "Carlo Mendoza", email: "carlo.mendoza@student.slsu.edu.ph", studentNumber: "2020-00789", program: "BS Computer Science", year: "Year 4", section: "4A" },
-    { name: "Sofia Villanueva", email: "sofia.villanueva@student.slsu.edu.ph", studentNumber: "2023-00321", program: "BS Mathematics", year: "Year 1", section: "1C" },
-    { name: "Marco Tan", email: "marco.tan@student.slsu.edu.ph", studentNumber: "2021-00654", program: "BS Computer Science", year: "Year 3", section: "3B" }
-];
-
-const consultationData = [
-    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Anna Lim", date: "2026-10-01", time: "10:00 AM – 11:00 AM", checkedIn: false, status: "Confirmed" },
-    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Maria Santos", date: "2026-09-25", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Completed" },
-    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Prof. Ramon Cruz", date: "2026-09-18", time: "1:00 PM – 2:00 PM", checkedIn: false, status: "No Show" },
-    { student: "Juan dela Cruz", studentNumber: "2021-00123", faculty: "Dr. Maria Santos", date: "2026-09-11", time: "2:00 PM – 3:00 PM", checkedIn: true, status: "Completed" },
-    { student: "Andrea Reyes", studentNumber: "2022-00456", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Confirmed" },
-    { student: "Carlo Mendoza", studentNumber: "2020-00789", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: false, status: "Confirmed" },
-    { student: "Sofia Villanueva", studentNumber: "2023-00321", faculty: "Dr. Maria Santos", date: "2026-09-30", time: "10:00 AM – 11:00 AM", checkedIn: true, status: "Confirmed" },
-    { student: "Marco Tan", studentNumber: "2021-00654", faculty: "Dr. Maria Santos", date: "2026-10-01", time: "2:00 PM – 3:00 PM", checkedIn: false, status: "Confirmed" }
-];
+let accountData = [];
+let facultyData = [];
+let studentData = [];
+let consultationData = [];
 
 let toastTimer;
 let editingFacultyIndex = null;
-const systemPolicies = {
+let systemPolicies = {
     checkinWindow: 20,
     defaultCapacity: 5,
     automaticNoShow: true,
@@ -232,7 +198,7 @@ $("#accountSearch").addEventListener("input", renderAccounts);
 $("#addAccountButton").addEventListener("click", () => $("#accountDialog").showModal());
 $("#closeAccountDialog").addEventListener("click", () => $("#accountDialog").close());
 $("#cancelAccountDialog").addEventListener("click", () => $("#accountDialog").close());
-$("#accountForm").addEventListener("submit", (event) => {
+$("#accountForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = $("#accountName").value.trim();
     const email = $("#accountEmail").value.trim();
@@ -243,22 +209,31 @@ $("#accountForm").addEventListener("submit", (event) => {
         return;
     }
 
-    accountData.push({ name, email, role, status: "Active" });
-    $("#accountForm").reset();
-    $("#accountDialog").close();
-    renderAccounts();
-    renderOverview();
-    showToast("Account added.");
+    try {
+        accountData.push(await api.create("accounts", { name, email, role }));
+        $("#accountForm").reset();
+        $("#accountDialog").close();
+        renderAccounts();
+        renderOverview();
+        showToast("Account added.");
+    } catch (error) {
+        showToast(error.message);
+    }
 });
-$("#accountsList").addEventListener("click", (event) => {
+$("#accountsList").addEventListener("click", async (event) => {
     const toggle = event.target.closest("[data-account-toggle]");
     if (!toggle) return;
     const account = accountData[Number(toggle.dataset.accountToggle)];
     if (!account || account.role === "Administrator") return;
-    account.status = account.status === "Active" ? "Suspended" : "Active";
-    renderAccounts();
-    renderOverview();
-    showToast(`${account.name} ${account.status.toLowerCase()}.`);
+    try {
+        const status = account.status === "Active" ? "Suspended" : "Active";
+        Object.assign(account, await api.update(`accounts/${account.id}`, { status }));
+        renderAccounts();
+        renderOverview();
+        showToast(`${account.name} ${account.status.toLowerCase()}.`);
+    } catch (error) {
+        showToast(error.message);
+    }
 });
 
 function openFacultyDialog(index = null) {
@@ -283,7 +258,7 @@ $("#facultyOverview").addEventListener("click", (event) => {
     const editButton = event.target.closest("[data-edit-faculty]");
     if (editButton) openFacultyDialog(Number(editButton.dataset.editFaculty));
 });
-$("#facultyForm").addEventListener("submit", (event) => {
+$("#facultyForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const faculty = {
         name: $("#facultyName").value.trim(),
@@ -292,7 +267,7 @@ $("#facultyForm").addEventListener("submit", (event) => {
         department: $("#facultyDepartment").value.trim(),
         office: $("#facultyOffice").value.trim(),
         workload: editingFacultyIndex === null ? 0 : facultyData[editingFacultyIndex].workload,
-        slots: editingFacultyIndex === null ? 0 : facultyData[editingFacultyIndex].slots
+        color: editingFacultyIndex === null ? "blue" : facultyData[editingFacultyIndex].color
     };
     const duplicate = facultyData.some((item, index) =>
         index !== editingFacultyIndex && item.email.toLowerCase() === faculty.email.toLowerCase()
@@ -303,31 +278,21 @@ $("#facultyForm").addEventListener("submit", (event) => {
         return;
     }
 
-    if (editingFacultyIndex === null) {
-        facultyData.push(faculty);
-        const accountName = `${faculty.title} ${faculty.name}`;
-        const existingAccount = accountData.find((account) => account.email.toLowerCase() === faculty.email.toLowerCase());
-        if (existingAccount) {
-            existingAccount.name = accountName;
-            existingAccount.role = "Faculty";
+    try {
+        if (editingFacultyIndex === null) {
+            facultyData.push(await api.create("faculty", faculty));
         } else {
-            accountData.push({ name: accountName, email: faculty.email, role: "Faculty", status: "Active" });
+            const previous = facultyData[editingFacultyIndex];
+            facultyData[editingFacultyIndex] = await api.update(`faculty/${previous.id}`, faculty);
         }
-    } else {
-        const previousFaculty = facultyData[editingFacultyIndex];
-        facultyData[editingFacultyIndex] = faculty;
-        const linkedAccount = accountData.find((account) => account.email.toLowerCase() === previousFaculty.email.toLowerCase());
-        if (linkedAccount) {
-            linkedAccount.name = `${faculty.title} ${faculty.name}`;
-            linkedAccount.email = faculty.email;
-        }
+        $("#facultyDialog").close();
+        renderFacultyOverview();
+        renderOverview();
+        showToast(editingFacultyIndex === null ? "Faculty profile added." : "Faculty profile updated.");
+        editingFacultyIndex = null;
+    } catch (error) {
+        showToast(error.message);
     }
-
-    $("#facultyDialog").close();
-    renderFacultyOverview();
-    renderOverview();
-    showToast(editingFacultyIndex === null ? "Faculty profile added." : "Faculty profile updated.");
-    editingFacultyIndex = null;
 });
 
 let editingStudentIndex = null;
@@ -355,7 +320,7 @@ $("#studentsList").addEventListener("click", (event) => {
     const editButton = event.target.closest("[data-edit-student]");
     if (editButton) openStudentDialog(Number(editButton.dataset.editStudent));
 });
-$("#studentForm").addEventListener("submit", (event) => {
+$("#studentForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const student = {
         name: $("#studentName").value.trim(),
@@ -375,48 +340,60 @@ $("#studentForm").addEventListener("submit", (event) => {
         return;
     }
 
-    if (editingStudentIndex === null) {
-        studentData.push(student);
-        const existingAccount = accountData.find((account) => account.email.toLowerCase() === student.email.toLowerCase());
-        if (existingAccount) {
-            existingAccount.name = student.name;
-            existingAccount.role = "Student";
-        } else {
-            accountData.push({ name: student.name, email: student.email, role: "Student", status: "Active" });
-        }
-    } else {
-        const previousStudent = studentData[editingStudentIndex];
-        studentData[editingStudentIndex] = student;
-        const linkedAccount = accountData.find((account) => account.email.toLowerCase() === previousStudent.email.toLowerCase());
-        if (linkedAccount) {
-            linkedAccount.name = student.name;
-            linkedAccount.email = student.email;
-        }
-    }
-
     const isAddingStudent = editingStudentIndex === null;
-    $("#studentDialog").close();
-    renderStudents();
-    renderOverview();
-    showToast(isAddingStudent ? "Student profile added." : "Student profile updated.");
-    editingStudentIndex = null;
+    try {
+        if (isAddingStudent) {
+            studentData.push(await api.create("students", student));
+        } else {
+            const previous = studentData[editingStudentIndex];
+            studentData[editingStudentIndex] = await api.update(`students/${previous.id}`, student);
+        }
+        $("#studentDialog").close();
+        renderStudents();
+        renderOverview();
+        showToast(isAddingStudent ? "Student profile added." : "Student profile updated.");
+        editingStudentIndex = null;
+    } catch (error) {
+        showToast(error.message);
+    }
 });
 
 $("#recordSearch").addEventListener("input", renderRecords);
 
-$("#systemPolicyForm").addEventListener("submit", (event) => {
+$("#systemPolicyForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!event.currentTarget.reportValidity()) return;
-    systemPolicies.checkinWindow = Number($("#checkinWindow").value);
-    systemPolicies.defaultCapacity = Number($("#defaultCapacity").value);
-    systemPolicies.automaticNoShow = $("#automaticNoShow").checked;
-    systemPolicies.automaticCompletion = $("#automaticCompletion").checked;
-    renderSystem();
-    showToast("System policies saved.");
+    try {
+        systemPolicies = await api.replace("policies", {
+            checkinWindow: Number($("#checkinWindow").value),
+            defaultCapacity: Number($("#defaultCapacity").value),
+            automaticNoShow: $("#automaticNoShow").checked,
+            automaticCompletion: $("#automaticCompletion").checked
+        });
+        renderSystem();
+        showToast("System policies saved.");
+    } catch (error) {
+        showToast(error.message);
+    }
 });
 
 $("#systemPolicyForm").addEventListener("change", (event) => {
     if (event.target.matches("#automaticNoShow, #automaticCompletion")) updatePolicyStates();
 });
 
-renderOverview();
+async function initializeAdminPage() {
+    try {
+        [accountData, facultyData, studentData, consultationData, systemPolicies] = await Promise.all([
+            api.get("accounts"),
+            api.get("faculty"),
+            api.get("students"),
+            api.get("appointments"),
+            api.get("policies")
+        ]);
+        renderOverview();
+    } catch (error) {
+        showToast(`Could not load ConsultHub data: ${error.message}`);
+    }
+}
+
+initializeAdminPage();

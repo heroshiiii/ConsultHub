@@ -6,23 +6,12 @@ const localDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2,
 const scheduleWeekStart = new Date(today);
 scheduleWeekStart.setDate(today.getDate() + (today.getDay() === 0 ? 1 : today.getDay() === 6 ? 2 : 1 - today.getDay()));
 scheduleWeekStart.setHours(12, 0, 0, 0);
-const appointments = [
-    { name: "Juan dela Cruz", studentId: "2021-00123", program: "BS Computer Science", time: "2:00 PM – 3:00 PM", checked: true, checkedAt: "2:03 PM", status: "Completed", initials: "Jd", slotId: null, date: "2026-09-11" },
-    { name: "Juan dela Cruz", studentId: "2021-00123", program: "BS Computer Science", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:47 AM", status: "Completed", initials: "Jd", slotId: null, date: "2026-09-25" },
-    { name: "Andrea Reyes", studentId: "2022-00456", program: "BS Information Technology", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:42 AM", status: "Confirmed", initials: "AR", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
-    { name: "Carlo Mendoza", studentId: "2020-00789", program: "BS Computer Science", time: "10:00 AM – 11:00 AM", checked: false, status: "Confirmed", initials: "CM", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
-    { name: "Sofia Villanueva", studentId: "2023-00321", program: "BS Mathematics", time: "10:00 AM – 11:00 AM", checked: true, checkedAt: "9:55 AM", status: "Confirmed", initials: "SV", slotId: 1, date: dateOffset(scheduleWeekStart, 0) },
-    { name: "Marco Tan", studentId: "2021-00654", program: "BS Computer Science", time: "2:00 PM – 3:00 PM", checked: false, status: "Confirmed", initials: "MT", slotId: 3, date: dateOffset(scheduleWeekStart, 1) }
-];
+let appointments = [];
+let facultyId = null;
 let displayedWeekStart = new Date(scheduleWeekStart);
 let selectedScheduleDate = null;
 let activeAppointmentFilter = "all";
-let slots = [
-    { id: 1, date: dateOffset(scheduleWeekStart, 0), start: "10:00 AM", end: "11:00 AM", capacity: 5, booked: 3 },
-    { id: 2, date: dateOffset(scheduleWeekStart, 0), start: "11:00 AM", end: "12:00 PM", capacity: 5, booked: 5 },
-    { id: 3, date: dateOffset(scheduleWeekStart, 1), start: "2:00 PM", end: "3:00 PM", capacity: 5, booked: 1 },
-    { id: 4, date: dateOffset(scheduleWeekStart, 1), start: "3:00 PM", end: "4:00 PM", capacity: 5, booked: 0 }
-];
+let slots = [];
 let toastTimer;
 let editingSlotId = null;
 
@@ -329,7 +318,7 @@ $("#fullSchedule").addEventListener("click", (event) => {
     const studentsButton = event.target.closest("[data-show-slot-students]");
     if (!studentsButton) return;
 
-    appointmentSlotFilter = Number(studentsButton.dataset.showSlotStudents);
+    appointmentSlotFilter = studentsButton.dataset.showSlotStudents;
     showPage("appointments");
 });
 function openSlotForm(slot = null) {
@@ -366,7 +355,7 @@ $("#toggleSlotForm").addEventListener("click", () => {
 
 $("#cancelSlotForm").addEventListener("click", closeSlotForm);
 
-$("#availabilityForm").addEventListener("submit", (event) => {
+$("#availabilityForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const start = $("#slotStart").value;
     const end = $("#slotEnd").value;
@@ -391,17 +380,22 @@ $("#availabilityForm").addEventListener("submit", (event) => {
         return;
     }
 
-    if (existing) {
-        Object.assign(existing, { date, start: timeLabel(start), end: timeLabel(end), capacity });
-    } else {
-        slots.push({
-            id: Date.now(),
+    try {
+        const payload = {
+            facultyId,
             date,
             start: timeLabel(start),
             end: timeLabel(end),
-            capacity,
-            booked: 0
-        });
+            capacity
+        };
+        if (existing) {
+            Object.assign(existing, await api.update(`slots/${existing.id}`, payload));
+        } else {
+            slots.push({ ...await api.create("slots", payload), booked: 0 });
+        }
+    } catch (error) {
+        message.textContent = error.message;
+        return;
     }
 
     closeSlotForm();
@@ -410,23 +404,29 @@ $("#availabilityForm").addEventListener("submit", (event) => {
     showToast(existing ? "Availability slot updated." : "Availability slot added.");
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
     const editButton = event.target.closest("[data-edit-slot]");
     if (editButton) {
-        const slot = slots.find((item) => item.id === Number(editButton.dataset.editSlot));
+        const slot = slots.find((item) => item.id === editButton.dataset.editSlot);
         if (slot) openSlotForm(slot);
         return;
     }
 
     const deleteButton = event.target.closest("[data-delete-slot]");
     if (deleteButton) {
-        const slot = slots.find((item) => item.id === Number(deleteButton.dataset.deleteSlot));
+        const slot = slots.find((item) => item.id === deleteButton.dataset.deleteSlot);
         if (!slot) return;
         if (slot.booked > 0) {
             showToast("Slots with existing reservations cannot be deleted.");
             return;
         }
-        slots = slots.filter((item) => item.id !== slot.id);
+        try {
+            await api.remove(`slots/${slot.id}`);
+            slots = slots.filter((item) => item.id !== slot.id);
+        } catch (error) {
+            showToast(error.message);
+            return;
+        }
         renderAvailability();
         renderDashboard();
         showToast("Availability slot deleted.");
@@ -435,10 +435,18 @@ document.addEventListener("click", (event) => {
     const checkin = event.target.closest("[data-toggle-checkin]");
     if (checkin) {
         const student = appointments[Number(checkin.dataset.toggleCheckin)];
-        student.checked = !student.checked;
-        student.checkedAt = student.checked
-            ? new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-            : undefined;
+        if (!student) return;
+        try {
+            Object.assign(student, await api.update(`appointments/${student.id}`, {
+                checkedIn: !student.checked,
+                checkedAt: !student.checked
+                    ? new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+                    : ""
+            }));
+        } catch (error) {
+            showToast(error.message);
+            return;
+        }
         renderAppointments();
         renderDashboard();
         showToast(student.checked ? "Student marked present." : "Check-in undone.");
@@ -446,4 +454,30 @@ document.addEventListener("click", (event) => {
 });
 $("#studentSearch").addEventListener("input", renderAppointments);
 
-renderDashboard();
+async function initializeFacultyPage() {
+    try {
+        const facultyMembers = await api.get("faculty");
+        const currentFaculty = facultyMembers.find((faculty) => faculty.email === "maria.santos@example.com");
+        if (!currentFaculty) throw new Error("The demo faculty profile was not found in MongoDB.");
+        facultyId = currentFaculty.id;
+        const [slotData, consultationData] = await Promise.all([
+            api.get(`slots?facultyId=${encodeURIComponent(facultyId)}`),
+            api.get("appointments")
+        ]);
+        appointments = consultationData.map((item) => ({
+            ...item,
+            studentId: item.studentNumber,
+            checked: item.checkedIn,
+            initials: item.student.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
+        }));
+        slots = slotData.map((slot) => ({
+            ...slot,
+            booked: appointments.filter((item) => item.slotId === slot.id && item.status === "Confirmed").length
+        }));
+        renderDashboard();
+    } catch (error) {
+        showToast(`Could not load ConsultHub data: ${error.message}`);
+    }
+}
+
+initializeFacultyPage();

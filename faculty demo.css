@@ -156,3 +156,60 @@ button,input,select{font:inherit}button,a{cursor:pointer}.hidden{display:none!im
 .appointments-empty{padding:24px;border:1px dashed #cbd6e6;border-radius:12px;color:var(--muted);font-size:9px;text-align:center}
 @media(max-width:700px){.page-view#appointments{width:100%}.appointments-toolbar{flex-wrap:wrap}.appointment-search{flex-basis:calc(100% - 30px)}.filter-icon{margin-left:auto}.appointment-filters{width:100%}.appointment-filter{flex:1}.appointment-student-row{flex-wrap:wrap;gap:7px}.appointment-student-info{flex-basis:calc(100% - 45px)}.appointment-time{margin-left:34px}.checked-at{min-width:auto}.row-chevron{margin-left:auto}}
 @media(max-width:420px){.appointment-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.date-checkin-summary{font-size:7px}.appointment-student-row{gap:6px}.appointment-time{margin-left:33px}.appointment-status,.checkin-status{font-size:6px}}
+
+@media(min-width:1440px){
+    .container{width:min(100% - 80px,1180px);margin-top:40px}
+    .topbar{padding-right:max(40px,calc((100vw - 1360px)/2));padding-left:max(40px,calc((100vw - 1360px)/2))}
+    .welcome{min-height:155px;padding:30px}
+    .welcome h1,.page-heading h1{font-size:27px}
+    .content-grid{gap:24px}
+}
+
+@media(max-width:600px){
+    body{font-size:14px}
+    .topbar{gap:9px;padding:10px 14px}
+    .navigation{gap:4px;padding:2px 0 5px;scrollbar-width:thin}
+    .nav-link{min-height:40px;padding:9px 11px;font-size:12px}
+    .container{width:calc(100% - 28px);margin:16px auto 36px}
+    .welcome{align-items:flex-start;flex-direction:column;gap:12px;padding:19px;border-radius:16px}
+    .welcome h1,.page-heading h1{font-size:clamp(22px,7vw,28px)}
+    .welcome p,.page-heading p{font-size:12px}
+    .date{text-align:left;font-size:11px}
+    .quick-actions{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .content-grid{grid-template-columns:1fr;gap:16px}
+    .availability-heading{align-items:stretch;flex-direction:column}
+    .availability-heading .add-slot-button{align-self:flex-start}
+    .availability-form,.toolbar{grid-template-columns:1fr}
+    .availability-form input,.toolbar input,.toolbar select{min-height:42px;font-size:13px}
+    .schedule-week{grid-template-columns:repeat(5,minmax(76px,1fr));gap:5px}
+    .schedule-day{min-height:115px;padding:8px 5px}
+    .schedule-slot-row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px}
+    .schedule-slot-time{grid-column:1}
+    .schedule-reserved{grid-column:2}
+    .schedule-open-badge,.schedule-full-badge{grid-column:2;grid-row:2}
+    .schedule-checked-in{grid-column:1;grid-row:2}
+    .schedule-row-progress{grid-column:1;grid-row:3}
+    .view-students-button{grid-column:2;grid-row:3;font-size:11px}
+    .appointment-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .appointments-toolbar{gap:8px}
+    .appointment-search{flex-basis:calc(100% - 32px);min-height:42px}
+    .appointment-search input{font-size:13px}
+    .appointment-filters{display:flex;overflow-x:auto}
+    .appointment-filter{min-height:40px;flex:1 0 auto;padding:8px;font-size:11px}
+    .appointment-student-row{gap:8px;padding:12px}
+    .appointment-student-info{flex-basis:calc(100% - 42px)}
+    .appointment-time{margin-left:30px;font-size:11px}
+    .appointment-status,.checkin-status{min-height:32px;padding:7px 9px;font-size:10px}
+    .checked-at{font-size:10px}
+    .toast{right:12px;bottom:max(12px,env(safe-area-inset-bottom));left:12px;text-align:center}
+}
+
+@media(max-width:380px){
+    .brand small{font-size:6px;letter-spacing:.5px}
+    .schedule-slot-row{grid-template-columns:1fr}
+    .schedule-reserved,.schedule-open-badge,.schedule-full-badge,.view-students-button{grid-column:1;grid-row:auto;justify-self:start}
+    .schedule-row-progress{grid-column:1;grid-row:auto}
+    .appointment-filters{gap:4px}
+    .appointment-filter{padding:7px 5px;font-size:10px}
+}

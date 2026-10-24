@@ -245,6 +245,120 @@ input:focus {
     line-height: 1.5;
 }
 
+.otp-panel[hidden],
+#loginForm[hidden] {
+    display: none;
+}
+
+.otp-panel h3 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.otp-destination {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.otp-destination strong {
+    color: #33415c;
+    font-weight: 600;
+}
+
+.otp-delivery-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 18px;
+    padding: 5px 9px;
+    border: 1px solid #a8f3d3;
+    border-radius: 20px;
+    background: #eafff5;
+    color: #07895c;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: .35px;
+}
+
+.otp-delivery-status::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+}
+
+.otp-panel label {
+    margin-bottom: 10px;
+}
+
+.otp-inputs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(5px, 2vw, 9px);
+}
+
+.otp-digit {
+    width: 100%;
+    height: clamp(40px, 10vw, 52px);
+    padding: 0;
+    border-radius: 13px;
+    font-size: clamp(17px, 5vw, 22px);
+    font-weight: 700;
+    text-align: center;
+}
+
+.demo-code-hint {
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 9px;
+    text-align: center;
+}
+
+.demo-code-hint strong {
+    color: #33415c;
+    letter-spacing: 1px;
+}
+
+.otp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.text-button {
+    min-height: 32px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #53647e;
+    font-size: 9px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.text-button:hover:not(:disabled) {
+    color: var(--blue);
+}
+
+.resend-button {
+    color: #7c8ba1;
+    text-align: right;
+}
+
+.text-button:disabled {
+    cursor: not-allowed;
+    opacity: .75;
+}
+
 .divider {
     display: flex;
     align-items: center;
@@ -331,12 +445,12 @@ input:focus {
     }
 
     .intro-panel {
-        min-height: 480px;
-        padding: 28px 26px;
+        min-height: auto;
+        padding: 28px clamp(20px, 6vw, 40px);
     }
 
     .hero-copy {
-        margin: 70px 0 55px;
+        margin: 52px 0 40px;
         transform: none;
     }
 
@@ -352,10 +466,146 @@ input:focus {
     .login-card {
         max-width: 380px;
     }
+
+    .benefits {
+        padding-bottom: 4px;
+        line-height: 1.5;
+    }
+}
+
+@media (max-width: 480px) {
+    .intro-panel {
+        min-height: 0;
+        padding: 22px 20px 26px;
+    }
+
+    .hero-copy {
+        margin: 42px 0 28px;
+    }
+
+    .hero-copy h1 {
+        font-size: clamp(28px, 9vw, 38px);
+    }
+
+    .hero-copy p {
+        font-size: 13px;
+    }
+
+    .benefits {
+        gap: 12px;
+        font-size: 12px;
+    }
+
+    .login-panel {
+        padding: 24px 16px;
+    }
+
+    .login-card {
+        max-width: 440px;
+        padding: 22px;
+    }
+
+    .subheading,
+    label,
+    input,
+    .primary-button,
+    .form-message {
+        font-size: 13px;
+    }
+
+    input {
+        height: 44px;
+    }
+
+    .primary-button {
+        min-height: 44px;
+    }
+
+    .otp-panel h3 {
+        font-size: 21px;
+    }
+
+    .otp-delivery-status {
+        font-size: 9px;
+    }
+
+    .demo-code-hint {
+        font-size: 11px;
+    }
 }
 
 @media (max-width: 360px) {
     .demo-options {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1400px) {
+    .intro-panel {
+        padding-right: clamp(72px, 8vw, 180px);
+        padding-left: clamp(56px, 8vw, 180px);
+    }
+
+    .hero-copy {
+        max-width: 680px;
+    }
+
+    .hero-copy p {
+        max-width: 520px;
+        font-size: 16px;
+    }
+
+    .brand-name {
+        font-size: 17px;
+    }
+
+    .brand-school {
+        font-size: 9px;
+    }
+
+    .login-card {
+        max-width: 420px;
+        padding: 34px;
+    }
+
+    h2 {
+        font-size: 27px;
+    }
+
+    .subheading,
+    label,
+    input,
+    .primary-button,
+    .form-message {
+        font-size: 14px;
+    }
+
+    input {
+        height: 48px;
+    }
+
+    .primary-button {
+        min-height: 48px;
+    }
+
+    .otp-digit {
+        height: 54px;
+        border-radius: 15px;
+    }
+
+    .otp-panel h3 {
+        font-size: 23px;
+    }
+
+    .otp-destination {
+        font-size: 13px;
+    }
+
+    .otp-panel label {
+        font-size: 13px;
+    }
+
+    .text-button {
+        font-size: 12px;
     }
 }

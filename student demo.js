@@ -2,85 +2,10 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-let appointments = [
-    {
-        id: 1,
-        faculty: "Dr. Anna Lim",
-        department: "Information Technology",
-        date: "2026-10-13",
-        time: "10:00 AM – 11:00 AM",
-        location: "IT Building Room 312",
-        status: "Confirmed"
-    },
-    {
-        id: 2,
-        faculty: "Dr. Maria Santos",
-        department: "Computer Science",
-        date: "2026-09-11",
-        time: "2:00 PM",
-        location: "Faculty Office 204",
-        status: "Completed",
-        checkedIn: true
-    },
-    {
-        id: 3,
-        faculty: "Prof. Ramon Cruz",
-        department: "Mathematics",
-        date: "2026-09-18",
-        time: "1:00 PM",
-        location: "Math Building Room 105",
-        status: "No Show"
-    },
-    {
-        id: 4,
-        faculty: "Dr. Maria Santos",
-        department: "Computer Science",
-        date: "2026-09-25",
-        time: "10:00 AM",
-        location: "Faculty Office 204",
-        status: "Completed",
-        checkedIn: true
-    }
-];
-
-const facultyMembers = [
-    {
-        name: "Dr. Maria Santos",
-        title: "Associate Professor",
-        department: "Computer Science",
-        office: "CS Building Room 204",
-        description: "Specializes in algorithms, data structures, and software engineering. Available for thesis advising and course inquiries.",
-        slots: 3,
-        color: "blue"
-    },
-    {
-        name: "Prof. Ramon Cruz",
-        title: "Assistant Professor",
-        department: "Mathematics",
-        office: "Math Building Room 108",
-        description: "Teaches Calculus, Linear Algebra, and Discrete Mathematics. Research focus on applied mathematics.",
-        slots: 1,
-        color: "cyan"
-    },
-    {
-        name: "Dr. Anna Lim",
-        title: "Professor",
-        department: "Information Technology",
-        office: "IT Building Room 312",
-        description: "Expert in database systems, cloud computing, and network administration. Available for internship endorsements.",
-        slots: 2,
-        color: "purple"
-    },
-    {
-        name: "Prof. Joel Reyes",
-        title: "Instructor",
-        department: "English",
-        office: "Liberal Arts Building Room 105",
-        description: "Teaches Technical Writing and Communication Arts. Available for thesis writing consultations.",
-        slots: 1,
-        color: "green"
-    }
-];
+let appointments = [];
+let facultyMembers = [];
+let consultationSlots = [];
+let currentStudent = null;
 
 let activeFilter = "all";
 let activeHistoryFilter = "all";
@@ -455,7 +380,7 @@ $$("[data-history-filter]").forEach((button) => {
 
 // CREATE A BOOKING
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-book]");
     if (!button) return;
 
@@ -464,6 +389,12 @@ document.addEventListener("click", (event) => {
     );
 
     if (!selectedFaculty) return;
+    try {
+        consultationSlots = await api.get(`slots?facultyId=${encodeURIComponent(selectedFaculty.id)}`);
+    } catch (error) {
+        showToast(error.message);
+        return;
+    }
 
     const today = new Date();
     const localToday = [
@@ -477,17 +408,12 @@ document.addEventListener("click", (event) => {
         <p>Choose a date and time for ${escapeHTML(selectedFaculty.name)}.</p>
 
         <form id="bookingForm">
-            <label for="bookingDate">Preferred Date</label>
-            <input type="date" id="bookingDate" min="${localToday}" required>
-
-            <label for="bookingTime">Preferred Time</label>
+            <label for="bookingTime">Available consultation slot</label>
             <select id="bookingTime" required>
-                <option value="">Select a time</option>
-                <option>9:00 AM – 10:00 AM</option>
-                <option>10:00 AM – 11:00 AM</option>
-                <option>11:00 AM – 12:00 PM</option>
-                <option>1:00 PM – 2:00 PM</option>
-                <option>2:00 PM – 3:00 PM</option>
+                <option value="">Select an available slot</option>
+                ${consultationSlots.filter((slot) => slot.date >= localToday && slot.booked < slot.capacity).map((slot) =>
+                    `<option value="${escapeHTML(slot.id)}">${escapeHTML(prettyDate(slot.date))} · ${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</option>`
+                ).join("")}
             </select>
 
             <label for="bookingReason">Reason for Consultation</label>
@@ -498,43 +424,35 @@ document.addEventListener("click", (event) => {
     `);
 });
 
-document.addEventListener("submit", (event) => {
+document.addEventListener("submit", async (event) => {
     if (event.target.id !== "bookingForm") return;
 
     event.preventDefault();
 
-    const date = $("#bookingDate").value;
-    const time = $("#bookingTime").value;
+    const slotId = $("#bookingTime").value;
     const reason = $("#bookingReason").value.trim();
 
-    if (!selectedFaculty || !date || !time || !reason) return;
-
-    const duplicate = appointments.some((item) =>
-        item.faculty === selectedFaculty.name &&
-        item.date === date &&
-        item.time === time &&
-        item.status === "Confirmed"
-    );
-
-    if (duplicate) {
-        showToast("You already have this appointment.");
+    if (!selectedFaculty || !slotId || !reason) return;
+    const slot = consultationSlots.find((item) => item.id === slotId);
+    if (!slot) {
+        showToast("Choose an available consultation slot.");
         return;
     }
 
-    appointments.push({
-        id: Date.now(),
-        faculty: selectedFaculty.name,
-        department: selectedFaculty.department,
-        date,
-        time,
-        location: selectedFaculty.office,
-        status: "Confirmed",
-        reason
-    });
-
-    closeModal();
-    showPage("appointments");
-    showToast("Demo appointment created.");
+    try {
+        const appointment = await api.create("appointments", {
+            facultyId: selectedFaculty.id,
+            slotId,
+            date: slot.date,
+            reason
+        });
+        appointments.push(appointment);
+        closeModal();
+        showPage("appointments");
+        showToast("Appointment saved.");
+    } catch (error) {
+        showToast(error.message);
+    }
 });
 
 
@@ -545,7 +463,7 @@ document.addEventListener("click", (event) => {
     if (!button) return;
 
     const item = appointments.find(
-        (appointment) => appointment.id === Number(button.dataset.details)
+        (appointment) => String(appointment.id) === button.dataset.details
     );
 
     if (!item) return;
@@ -574,12 +492,12 @@ document.addEventListener("click", (event) => {
     $("#closeDetails").addEventListener("click", closeModal);
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-checkin]");
     if (!button) return;
 
     const item = appointments.find(
-        (appointment) => appointment.id === Number(button.dataset.checkin)
+        (appointment) => String(appointment.id) === button.dataset.checkin
     );
 
     if (!item) return;
@@ -594,14 +512,42 @@ document.addEventListener("click", (event) => {
         return;
     }
 
-    item.checkedIn = true;
-
-    closeModal();
-    renderDashboard();
-    showToast("Check-in recorded in the demo.");
+    try {
+        const updated = await api.update(`appointments/${item.id}`, { checkedIn: true });
+        Object.assign(item, updated);
+        closeModal();
+        renderDashboard();
+        showToast("Check-in recorded.");
+    } catch (error) {
+        showToast(error.message);
+    }
 });
 
 
 // INITIALIZE
 
-renderDashboard();
+async function initializeStudentPage() {
+    try {
+        currentStudent = await api.get("auth/me");
+        if (currentStudent.role !== "Student") {
+            throw new Error("An active student account is required to view this dashboard.");
+        }
+        const [facultyData, slotData, appointmentData] = await Promise.all([
+            api.get("faculty"),
+            api.get("slots"),
+            api.get("appointments")
+        ]);
+        consultationSlots = slotData;
+        facultyMembers = facultyData.map((faculty) => ({
+            ...faculty,
+            slots: slotData.filter((slot) => slot.facultyId === faculty.id).length
+        }));
+        appointments = appointmentData;
+        renderDashboard();
+    } catch (error) {
+        showToast(`Could not load ConsultHub data: ${error.message}`);
+        renderDashboard();
+    }
+}
+
+initializeStudentPage();

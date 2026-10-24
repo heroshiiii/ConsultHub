@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ConsultHub | SLSU</title>
+    <title>ConsultHub | Academic Workspace</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,9 +23,7 @@
 
                 <div class="brand-copy">
                     <span class="brand-name">ConsultHub</span>
-                    <span class="brand-school">
-                        SOUTHERN LEYTE STATE UNIVERSITY
-                    </span>
+                    <span class="brand-school">ACADEMIC CONSULTATION PLATFORM</span>
                 </div>
             </header>
 
@@ -69,78 +67,58 @@
 
             <div class="login-card">
 
-                <div class="mail-icon">✉</div>
+                <div class="mail-icon" aria-hidden="true">✉</div>
 
-                <h2>Welcome back</h2>
+                <h2 id="loginTitle">Welcome back</h2>
 
-                <p class="subheading">
-                    Use your school email to access your workspace.
+                <p id="loginSubtitle" class="subheading">
+                    Enter an email address registered to an active account.
                 </p>
 
-                <form id="loginForm">
+                <form id="loginForm" novalidate>
 
-                    <label for="email">
-                        School Email Address
-                    </label>
+                    <label for="email">Email Address</label>
 
                     <input
                         type="email"
                         id="email"
-                        placeholder="you@student.slsu.edu.ph"
+                        placeholder="you@example.com"
                         required
                     >
 
                     <p id="formMessage" class="form-message"></p>
 
                     <button type="submit" class="primary-button">
-                        → &nbsp; Send OTP Code
+                        → &nbsp; Validate Email
                     </button>
 
                 </form>
 
-                <div class="divider">
-                    <span>QUICK PREVIEW</span>
-                </div>
+                <section id="otpPanel" class="otp-panel" hidden aria-labelledby="otpHeading">
+                    <h3 id="otpHeading">Verify your email</h3>
+                    <p class="otp-destination"><span id="otpDestinationMessage">We sent a 6-digit code to</span> <strong id="otpEmail"></strong></p>
+                    <p id="otpDeliveryStatus" class="otp-delivery-status" role="status"></p>
 
-                <div class="demo-options">
+                    <form id="otpForm" novalidate>
+                        <label for="otp-1">Enter verification code</label>
+                        <div class="otp-inputs" aria-label="6-digit verification code">
+                            <input id="otp-1" class="otp-digit" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Verification code digit 1" required>
+                            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Verification code digit 2" required>
+                            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Verification code digit 3" required>
+                            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Verification code digit 4" required>
+                            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Verification code digit 5" required>
+                            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Verification code digit 6" required>
+                        </div>
+                        <p id="demoCodeHint" class="demo-code-hint" hidden>Demo mode: enter <strong>123456</strong>.</p>
+                        <p id="otpMessage" class="form-message" role="alert"></p>
+                        <button id="verifyOtpButton" class="primary-button" type="submit">Verify &amp; Sign In</button>
+                    </form>
 
-                    <a
-                        class="demo-option"
-                        href="./student%20demo.html"
-                    >
-                        <span class="demo-icon student">♙</span>
-
-                        <span class="demo-text">
-                            <strong>Student Demo</strong>
-                            <small>juan.delacruz@student.slsu.edu.ph</small>
-                        </span>
-                    </a>
-
-                    <a
-                        class="demo-option"
-                        href="./faculty%20demo.html"
-                    >
-                        <span class="demo-icon faculty">▣</span>
-
-                        <span class="demo-text">
-                            <strong>Faculty Demo</strong>
-                            <small>maria.santos@slsu.edu.ph</small>
-                        </span>
-                    </a>
-
-                    <a
-                        class="demo-option"
-                        href="./admin%20demo.html"
-                    >
-                        <span class="demo-icon admin">◌</span>
-
-                        <span class="demo-text">
-                            <strong>Admin Demo</strong>
-                            <small>admin@slsu.edu.ph</small>
-                        </span>
-                    </a>
-
-                </div>
+                    <div class="otp-footer">
+                        <button id="useDifferentEmail" class="text-button" type="button">Use a different email</button>
+                        <button id="resendOtpButton" class="text-button resend-button" type="button" disabled>Resend in 30s</button>
+                    </div>
+                </section>
 
             </div>
 
