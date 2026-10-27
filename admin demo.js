@@ -8,6 +8,7 @@ let consultationData = [];
 
 let toastTimer;
 let editingFacultyIndex = null;
+let editingAccountIndex = null;
 let systemPolicies = {
     checkinWindow: 20,
     defaultCapacity: 5,
@@ -26,6 +27,16 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
+async function refreshConsultations() {
+    try {
+        consultationData = await api.get("appointments");
+        renderOverview();
+        renderRecords();
+    } catch (error) {
+        showToast(`Could not refresh appointments: ${error.message}`);
+    }
+}
+
 function showPage(page) {
     $$(".page-view").forEach((section) => {
         section.classList.toggle("hidden", section.id !== page);
@@ -41,6 +52,7 @@ function showPage(page) {
     if (page === "students") renderStudents();
     if (page === "system") renderSystem();
     if (page === "records") renderRecords();
+    if (page === "overview" || page === "records") refreshConsultations();
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -82,12 +94,15 @@ function renderOverview() {
     $("#consultationCount").textContent = consultationData.length;
     $("#completedCount").textContent = consultationData.filter((item) => item.status === "Completed").length;
     $("#missedCount").textContent = consultationData.filter((item) => item.status === "No Show").length;
+    const studentAccountCount = accountData.filter((account) => account.role === "Student").length;
+    $("#studentNavCount").textContent = `(${studentAccountCount})`;
+    $("#studentManagementCount").textContent = studentAccountCount;
 }
 
 function renderAccounts() {
     const query = $("#accountSearch").value.trim().toLowerCase();
     const filteredAccounts = accountData.filter((account) =>
-        `${account.name} ${account.email} ${account.role} ${account.status}`.toLowerCase().includes(query)
+        `${account.name} ${account.email} ${account.role} ${account.status} ${account.studentNumber || ""} ${account.facultyNumber || ""} ${account.program || ""} ${account.college || ""}`.toLowerCase().includes(query)
     );
 
     $("#accountsList").innerHTML = filteredAccounts.length
@@ -99,6 +114,17 @@ function renderAccounts() {
                 <span class="account-identity">
                     <strong>${escapeHTML(account.name)}</strong>
                     <small>${escapeHTML(account.email)}</small>
+                    ${account.role === "Student" && account.studentNumber
+                        ? `<small>Student ID: ${escapeHTML(account.studentNumber)}</small>`
+                        : account.role === "Faculty" && account.facultyNumber
+                            ? `<small>Faculty ID: ${escapeHTML(account.facultyNumber)}</small>`
+                            : ""}
+                    ${account.role === "Student" && account.program
+                        ? `<small>Program: ${escapeHTML(account.program)}</small>`
+                        : ""}
+                    ${account.role === "Faculty" && account.college
+                        ? `<small>College: ${escapeHTML(account.college)}</small>`
+                        : ""}
                 </span>
                 <span class="account-role">${escapeHTML(isAdministrator ? "Admin" : account.role)}</span>
                 <span class="account-status ${account.status === "Active" ? "active" : "suspended"}"><span aria-hidden="true"></span>${escapeHTML(account.status)}</span>
@@ -113,7 +139,7 @@ function renderAccounts() {
 function renderFacultyOverview() {
     const query = $("#facultySearch").value.trim().toLowerCase();
     const filteredFaculty = facultyData.filter((faculty) =>
-        `${faculty.name} ${faculty.title} ${faculty.email} ${faculty.department} ${faculty.office}`.toLowerCase().includes(query)
+        `${faculty.name} ${faculty.title} ${faculty.email} ${faculty.college || ""} ${faculty.department}`.toLowerCase().includes(query)
     );
 
     $("#facultyOverview").innerHTML = filteredFaculty.length
@@ -124,8 +150,9 @@ function renderFacultyOverview() {
                 <div class="faculty-card-info">
                     <strong>${escapeHTML(faculty.name)}</strong>
                     <small class="faculty-card-title">${escapeHTML(faculty.title)}</small>
+                    ${faculty.college ? `<small>${escapeHTML(faculty.college)}</small>` : ""}
                     <small>${escapeHTML(faculty.department.startsWith("Department of ") ? faculty.department : `Department of ${faculty.department}`)}</small>
-                    <small>${escapeHTML(faculty.office)}</small>
+                    <small>Room is set per availability slot</small>
                 </div>
                 <button class="faculty-menu-button" type="button" data-edit-faculty="${index}" aria-label="Edit ${escapeHTML(faculty.name)}" title="Edit faculty profile">⋯</button>
             </article>`;
@@ -135,19 +162,50 @@ function renderFacultyOverview() {
 
 function renderStudents() {
     const query = $("#studentSearch").value.trim().toLowerCase();
-    const filteredStudents = studentData.filter((student) =>
+    const accountStudents = accountData
+        .map((account, accountIndex) => ({ account, accountIndex }))
+        .filter(({ account }) => account.role === "Student")
+        .map(({ account, accountIndex }) => {
+            const profileIndex = studentData.findIndex(
+                (student) => student.email.toLowerCase() === account.email.toLowerCase()
+            );
+            const profile = profileIndex === -1 ? null : studentData[profileIndex];
+            return {
+                name: account.name || profile?.name || "Student",
+                email: account.email,
+                studentNumber: accountIdNumber(account) || profile?.studentNumber || "",
+                program: account.program || profile?.program || "",
+                year: profile?.year || "",
+                section: profile?.section || "",
+                profileIndex,
+                accountIndex
+            };
+        });
+    const accountEmails = new Set(accountStudents.map((student) => student.email.toLowerCase()));
+    const unlinkedProfiles = studentData
+        .map((student, profileIndex) => ({ student, profileIndex }))
+        .filter(({ student }) => !accountEmails.has(student.email.toLowerCase()))
+        .map(({ student, profileIndex }) => ({
+            ...student,
+            profileIndex,
+            accountIndex: -1
+        }));
+    const filteredStudents = [...accountStudents, ...unlinkedProfiles].filter((student) =>
         `${student.name} ${student.email} ${student.studentNumber} ${student.program} ${student.year} ${student.section}`.toLowerCase().includes(query)
     );
 
     $("#studentsList").innerHTML = filteredStudents.length
         ? filteredStudents.map((student) => {
-            const index = studentData.indexOf(student);
+            const level = [student.year, student.section].filter(Boolean).join(" · ") || "—";
+            const editButton = student.profileIndex >= 0
+                ? `<button class="student-edit-button" type="button" data-edit-student="${student.profileIndex}" aria-label="Edit ${escapeHTML(student.name)}">Edit</button>`
+                : `<button class="student-edit-button" type="button" data-edit-account="${student.accountIndex}" aria-label="Edit account for ${escapeHTML(student.name)}">Edit</button>`;
             return `<tr>
                 <td class="student-name-cell"><strong>${escapeHTML(student.name)}</strong><small>${escapeHTML(student.email)}</small></td>
-                <td>${escapeHTML(student.studentNumber)}</td>
-                <td>${escapeHTML(student.program)}</td>
-                <td>${escapeHTML(student.year)} · ${escapeHTML(student.section)}</td>
-                <td><button class="student-edit-button" type="button" data-edit-student="${index}" aria-label="Edit ${escapeHTML(student.name)}">Edit</button></td>
+                <td>${escapeHTML(student.studentNumber || "—")}</td>
+                <td>${escapeHTML(student.program || "—")}</td>
+                <td>${escapeHTML(level)}</td>
+                <td>${editButton}</td>
             </tr>`;
         }).join("")
         : `<tr><td class="student-empty" colspan="5">No students match your search.</td></tr>`;
@@ -195,27 +253,132 @@ $$("[data-go]").forEach((button) => {
 });
 
 $("#accountSearch").addEventListener("input", renderAccounts);
-$("#addAccountButton").addEventListener("click", () => $("#accountDialog").showModal());
+function accountIdNumber(account) {
+    if (account.role === "Student") {
+        return account.studentNumber || studentData.find((student) => student.email.toLowerCase() === account.email.toLowerCase())?.studentNumber || "";
+    }
+    return account.facultyNumber || "";
+}
+
+function updateAccountIdField() {
+    const role = $("#accountRole").value;
+    const field = $("#accountIdNumberField");
+    const input = $("#accountIdNumber");
+    const requiresId = role === "Student" || role === "Faculty";
+    field.classList.toggle("hidden", !requiresId);
+    $("#accountIdNumberLabel").textContent = role === "Faculty" ? "Faculty ID number" : "Student ID number";
+    input.required = requiresId;
+    const programField = $("#accountProgramField");
+    const programInput = $("#accountProgram");
+    const requiresProgram = role === "Student";
+    programField.classList.toggle("hidden", !requiresProgram);
+    programInput.disabled = !requiresProgram;
+    programInput.required = requiresProgram;
+    const collegeField = $("#accountCollegeField");
+    const collegeInput = $("#accountCollege");
+    const requiresCollege = role === "Faculty";
+    collegeField.classList.toggle("hidden", !requiresCollege);
+    collegeInput.disabled = !requiresCollege;
+}
+
+function openAccountDialog(index = null) {
+    editingAccountIndex = index;
+    const account = index === null ? null : accountData[index];
+    $("#accountForm").reset();
+    $("#accountDialogTitle").textContent = account ? "Edit account" : "Add account";
+    $("#saveAccountButton").textContent = account ? "Save changes" : "Add account";
+    $("#accountName").value = account?.name || "";
+    $("#accountEmail").value = account?.email || "";
+    $("#accountRole").value = account?.role || "Student";
+    $("#accountRole").disabled = Boolean(account);
+    $("#accountRoleHint").classList.toggle("hidden", !account);
+    $("#accountIdNumber").value = account ? accountIdNumber(account) : "";
+    $("#accountProgram").value = account
+        ? account.program || studentData.find((student) => student.email.toLowerCase() === account.email.toLowerCase())?.program || ""
+        : "";
+    $("#accountCollege").value = account
+        ? account.college || facultyData.find((faculty) => faculty.email.toLowerCase() === account.email.toLowerCase())?.college || ""
+        : "";
+    updateAccountIdField();
+    $("#accountDialog").showModal();
+}
+
+$("#accountRole").addEventListener("change", updateAccountIdField);
+$("#addAccountButton").addEventListener("click", () => openAccountDialog());
 $("#closeAccountDialog").addEventListener("click", () => $("#accountDialog").close());
-$("#cancelAccountDialog").addEventListener("click", () => $("#accountDialog").close());
+$("#cancelAccountDialog").addEventListener("click", () => {
+    $("#accountDialog").close();
+    editingAccountIndex = null;
+});
 $("#accountForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = $("#accountName").value.trim();
     const email = $("#accountEmail").value.trim();
     const role = $("#accountRole").value;
-    if (accountData.some((account) => account.email.toLowerCase() === email.toLowerCase())) {
+    const idNumber = $("#accountIdNumber").value.trim();
+    const program = role === "Student" ? $("#accountProgram").value.trim() : "";
+    const college = role === "Faculty" ? $("#accountCollege").value.trim() : "";
+    const editingAccount = editingAccountIndex === null ? null : accountData[editingAccountIndex];
+    if (accountData.some((account) =>
+        account.id !== editingAccount?.id && account.email.toLowerCase() === email.toLowerCase()
+    )) {
         showToast("An account with this email already exists.");
         $("#accountEmail").focus();
         return;
     }
+    const existingId = role === "Student"
+        ? accountData.some((account) =>
+            account.id !== editingAccount?.id &&
+            account.role === "Student" &&
+            accountIdNumber(account).toLowerCase() === idNumber.toLowerCase()
+        ) || studentData.some((student) =>
+            student.email.toLowerCase() !== editingAccount?.email.toLowerCase() &&
+            student.studentNumber.toLowerCase() === idNumber.toLowerCase()
+        )
+        : role === "Faculty"
+            ? accountData.some((account) =>
+                account.id !== editingAccount?.id &&
+                account.role === "Faculty" &&
+                account.facultyNumber?.toLowerCase() === idNumber.toLowerCase()
+            )
+            : false;
+    if (existingId) {
+        showToast(`A ${role.toLowerCase()} account with this ID number already exists.`);
+        $("#accountIdNumber").focus();
+        return;
+    }
+    if (role === "Student" && !program) {
+        showToast("Enter a program for this student account.");
+        $("#accountProgram").focus();
+        return;
+    }
 
     try {
-        accountData.push(await api.create("accounts", { name, email, role }));
+        const accountChanges = { name, email, role, idNumber, program, college };
+        const updatedAccount = editingAccount
+            ? await api.update(`accounts/${editingAccount.id}`, accountChanges)
+            : await api.create("accounts", accountChanges);
+        if (editingAccount) {
+            const previousEmail = editingAccount.email.toLowerCase();
+            accountData[editingAccountIndex] = updatedAccount;
+            const student = studentData.find((item) => item.email.toLowerCase() === previousEmail);
+            if (student) Object.assign(student, { name, email, studentNumber: idNumber, program });
+            const faculty = facultyData.find((item) => item.email.toLowerCase() === previousEmail);
+            if (faculty) Object.assign(faculty, { name, email, college });
+        } else {
+            accountData.push(updatedAccount);
+        }
         $("#accountForm").reset();
+        editingAccountIndex = null;
+        $("#accountRole").disabled = false;
+        $("#accountRoleHint").classList.add("hidden");
+        updateAccountIdField();
         $("#accountDialog").close();
         renderAccounts();
+        renderStudents();
+        renderFacultyOverview();
         renderOverview();
-        showToast("Account added.");
+        showToast(editingAccount ? "Account updated." : "Account added.");
     } catch (error) {
         showToast(error.message);
     }
@@ -245,8 +408,8 @@ function openFacultyDialog(index = null) {
     $("#facultyName").value = faculty?.name || "";
     $("#facultyTitle").value = faculty?.title || "";
     $("#facultyEmail").value = faculty?.email || "";
+    $("#facultyCollege").value = faculty?.college || "";
     $("#facultyDepartment").value = faculty?.department.replace(/^Department of /, "") || "";
-    $("#facultyOffice").value = faculty?.office || "";
     $("#facultyDialog").showModal();
 }
 
@@ -264,8 +427,8 @@ $("#facultyForm").addEventListener("submit", async (event) => {
         name: $("#facultyName").value.trim(),
         title: $("#facultyTitle").value.trim(),
         email: $("#facultyEmail").value.trim(),
+        college: $("#facultyCollege").value.trim(),
         department: $("#facultyDepartment").value.trim(),
-        office: $("#facultyOffice").value.trim(),
         workload: editingFacultyIndex === null ? 0 : facultyData[editingFacultyIndex].workload,
         color: editingFacultyIndex === null ? "blue" : facultyData[editingFacultyIndex].color
     };
@@ -317,6 +480,11 @@ $("#addStudentButton").addEventListener("click", () => openStudentDialog());
 $("#closeStudentDialog").addEventListener("click", () => $("#studentDialog").close());
 $("#cancelStudentDialog").addEventListener("click", () => $("#studentDialog").close());
 $("#studentsList").addEventListener("click", (event) => {
+    const accountButton = event.target.closest("[data-edit-account]");
+    if (accountButton) {
+        openAccountDialog(Number(accountButton.dataset.editAccount));
+        return;
+    }
     const editButton = event.target.closest("[data-edit-student]");
     if (editButton) openStudentDialog(Number(editButton.dataset.editStudent));
 });
@@ -348,6 +516,7 @@ $("#studentForm").addEventListener("submit", async (event) => {
             const previous = studentData[editingStudentIndex];
             studentData[editingStudentIndex] = await api.update(`students/${previous.id}`, student);
         }
+        accountData = await api.get("accounts");
         $("#studentDialog").close();
         renderStudents();
         renderOverview();
@@ -383,8 +552,9 @@ $("#systemPolicyForm").addEventListener("change", (event) => {
 
 async function initializeAdminPage() {
     try {
-        [accountData, facultyData, studentData, consultationData, systemPolicies] = await Promise.all([
-            api.get("accounts"),
+        accountData = await api.get("accounts");
+        renderOverview();
+        [facultyData, studentData, consultationData, systemPolicies] = await Promise.all([
             api.get("faculty"),
             api.get("students"),
             api.get("appointments"),
@@ -397,3 +567,4 @@ async function initializeAdminPage() {
 }
 
 initializeAdminPage();
+updateAccountIdField();

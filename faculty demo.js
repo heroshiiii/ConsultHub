@@ -8,6 +8,7 @@ scheduleWeekStart.setDate(today.getDate() + (today.getDay() === 0 ? 1 : today.ge
 scheduleWeekStart.setHours(12, 0, 0, 0);
 let appointments = [];
 let facultyId = null;
+let currentFaculty = null;
 let displayedWeekStart = new Date(scheduleWeekStart);
 let selectedScheduleDate = null;
 let activeAppointmentFilter = "all";
@@ -48,6 +49,20 @@ function slotDateLabel(date) {
     return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
+function displayName(name) {
+    return String(name || "").trim();
+}
+
+function initials(name) {
+    return displayName(name).replace(/^(Dr\.|Prof\.)\s*/i, "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+}
+
 function shortDateLabel(date) {
     return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
@@ -60,12 +75,39 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+async function refreshFacultyAppointments() {
+    try {
+        const [appointmentData, slotData] = await Promise.all([
+            api.get("appointments"),
+            api.get(`slots?facultyId=${encodeURIComponent(facultyId)}`)
+        ]);
+        appointments = appointmentData.map((item) => ({
+            ...item,
+            name: item.student || item.studentName || "Student",
+            studentId: item.studentNumber || item.studentId || "",
+            program: item.program || "",
+            checked: Boolean(item.checkedIn),
+            initials: initials(item.student || item.studentName || "Student")
+        }));
+        slots = slotData.map((slot) => ({
+            ...slot,
+            booked: appointments.filter((item) => item.slotId === slot.id && item.status === "Confirmed").length
+        }));
+        renderAppointments();
+        renderSchedule();
+        renderDashboard();
+    } catch (error) {
+        showToast(`Could not refresh appointments: ${error.message}`);
+    }
+}
+
 function showPage(id) {
     $$(".page-view").forEach((page) => page.classList.toggle("hidden", page.id !== id));
     $$(".nav-link").forEach((button) => button.classList.toggle("active", button.dataset.view === id));
     if (id === "availability") renderAvailability();
     if (id === "schedule") renderSchedule();
     if (id === "appointments") renderAppointments();
+    if ((id === "appointments" || id === "schedule") && facultyId) refreshFacultyAppointments();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -75,6 +117,7 @@ function scheduleCard(slot, index) {
         <strong>${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</strong>
         <small class="count">${slot.booked}/${slot.capacity}<br><small>students</small></small>
         <small>${escapeHTML(slotDateLabel(slot.date))}</small>
+        <small>⌖ ${escapeHTML(slot.location || "Room to be confirmed")}</small>
         <small class="checked">${slot.capacity - slot.booked} spots available</small>
         <div class="progress"><span style="width:${percent}%"></span></div>
         ${index === 0 ? `<small class="checked">${appointments.filter((student) => student.checked).length} checked in</small>` : `<small></small>`}
@@ -89,6 +132,9 @@ function studentCard(student) {
 }
 
 function renderDashboard() {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    $("#facultyGreeting").textContent = `${greeting}, ${currentFaculty?.name || "Faculty"}`;
     $("#dayName").textContent = today.toLocaleDateString("en-US", { weekday: "long" });
     $("#currentDate").textContent = today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     $("#todayCount").textContent = slots.length;
@@ -115,6 +161,7 @@ function renderAvailability() {
                         <strong><span aria-hidden="true">▦</span> ${escapeHTML(slotDateLabel(slot.date))}</strong>
                         <div class="availability-slot-meta">
                             <span><span aria-hidden="true">◷</span> ${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</span>
+                            <span><span aria-hidden="true">⌖</span> ${escapeHTML(slot.location || "Room to be confirmed")}</span>
                             <span><span aria-hidden="true">♙</span> ${slot.capacity} students max</span>
                         </div>
                     </div>
@@ -168,6 +215,7 @@ function renderSchedule() {
                 ${daySlots.length
                     ? daySlots.map((slot) => `<span class="schedule-day-slot ${slot.booked >= slot.capacity ? "full" : ""}">
                         <strong>${escapeHTML(slot.start)}</strong>
+                        <small>${escapeHTML(slot.location || "Room to be confirmed")}</small>
                         <small>${slot.booked}/${slot.capacity} students</small>
                     </span>`).join("")
                     : `<span class="no-day-slots">No slots</span>`}
@@ -188,6 +236,7 @@ function renderSchedule() {
                         const spotsLeft = slot.capacity - slot.booked;
                         return `<article class="schedule-slot-row">
                             <span class="schedule-slot-time"><span aria-hidden="true">◷</span>${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</span>
+                            <span class="schedule-slot-location"><span aria-hidden="true">⌖</span>${escapeHTML(slot.location || "Room to be confirmed")}</span>
                             <span class="schedule-reserved"><span aria-hidden="true">♙</span>${slot.booked}/${slot.capacity} reserved</span>
                             ${full
                                 ? `<span class="schedule-full-badge">Full</span>`
@@ -255,7 +304,9 @@ function renderAppointments() {
                             <span class="appointment-student-avatar">${escapeHTML(student.initials)}</span>
                             <span class="appointment-student-info">
                                 <strong>${escapeHTML(student.name)}</strong>
-                                <small>${escapeHTML(student.studentId)} · ${escapeHTML(student.program)}</small>
+                                ${[student.studentId, student.program].filter(Boolean).length
+                                    ? `<small>${escapeHTML([student.studentId, student.program].filter(Boolean).join(" · "))}</small>`
+                                    : ""}
                             </span>
                             <span class="appointment-time"><span aria-hidden="true">◷</span>${escapeHTML(student.time)}</span>
                             <span class="appointment-status ${statusClass(student.status)}">${escapeHTML(student.status)}</span>
@@ -328,6 +379,7 @@ function openSlotForm(slot = null) {
     $("#slotDate").value = slot?.date || dateOffset(scheduleWeekStart, 0);
     $("#slotStart").value = slot ? timeValue(slot.start) : "";
     $("#slotEnd").value = slot ? timeValue(slot.end) : "";
+    $("#slotLocation").value = slot?.location || currentFaculty?.office || "";
     $("#slotCapacity").value = slot?.capacity || 5;
     $("#slotFormMessage").textContent = "";
     $("#availabilityForm").classList.remove("hidden");
@@ -340,6 +392,7 @@ function closeSlotForm() {
     $("#availabilityForm").reset();
     $("#slotDate").value = dateOffset(scheduleWeekStart, 0);
     $("#slotCapacity").value = "5";
+    $("#slotLocation").value = "";
     $("#slotFormMessage").textContent = "";
     $("#toggleSlotForm").setAttribute("aria-expanded", "false");
     editingSlotId = null;
@@ -360,15 +413,16 @@ $("#availabilityForm").addEventListener("submit", async (event) => {
     const start = $("#slotStart").value;
     const end = $("#slotEnd").value;
     const date = $("#slotDate").value;
+    const location = $("#slotLocation").value.trim();
     const capacity = Number($("#slotCapacity").value);
     const existing = slots.find((slot) => slot.id === editingSlotId);
     const message = $("#slotFormMessage");
 
-    if (!date || !start || !end || start >= end || !Number.isInteger(capacity) ||
+    if (!date || !start || !end || !location || start >= end || !Number.isInteger(capacity) ||
         capacity < 1 || capacity > 20 || (existing && capacity < existing.booked)) {
         message.textContent = existing && capacity < existing.booked
             ? `Capacity cannot be lower than the ${existing.booked} existing reservations.`
-            : "Enter a valid date, time range, and capacity from 1 to 20.";
+            : "Enter a room, date, valid time range, and capacity from 1 to 20.";
         return;
     }
 
@@ -386,6 +440,7 @@ $("#availabilityForm").addEventListener("submit", async (event) => {
             date,
             start: timeLabel(start),
             end: timeLabel(end),
+            location,
             capacity
         };
         if (existing) {
@@ -456,25 +511,15 @@ $("#studentSearch").addEventListener("input", renderAppointments);
 
 async function initializeFacultyPage() {
     try {
-        const facultyMembers = await api.get("faculty");
-        const currentFaculty = facultyMembers.find((faculty) => faculty.email === "maria.santos@example.com");
-        if (!currentFaculty) throw new Error("The demo faculty profile was not found in MongoDB.");
-        facultyId = currentFaculty.id;
-        const [slotData, consultationData] = await Promise.all([
-            api.get(`slots?facultyId=${encodeURIComponent(facultyId)}`),
-            api.get("appointments")
-        ]);
-        appointments = consultationData.map((item) => ({
-            ...item,
-            studentId: item.studentNumber,
-            checked: item.checkedIn,
-            initials: item.student.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
-        }));
-        slots = slotData.map((slot) => ({
-            ...slot,
-            booked: appointments.filter((item) => item.slotId === slot.id && item.status === "Confirmed").length
-        }));
-        renderDashboard();
+        const user = await api.get("auth/me");
+        if (user.role !== "Faculty" || !user.facultyId) {
+            throw new Error("An active faculty profile is required to view this dashboard.");
+        }
+        currentFaculty = user;
+        facultyId = currentFaculty.facultyId;
+        $("#facultyNameDisplay").textContent = currentFaculty.name;
+        $("#facultyAvatar").textContent = initials(currentFaculty.name);
+        await refreshFacultyAppointments();
     } catch (error) {
         showToast(`Could not load ConsultHub data: ${error.message}`);
     }

@@ -13,13 +13,13 @@
 <body>
 
 <header class="topbar">
-    <a href="index.html" class="brand">
+    <div class="brand">
         <span class="brand-icon">▣</span>
         <span>
             <strong>ConsultHub</strong>
             <small>CONSULTHUB WORKSPACE</small>
         </span>
-    </a>
+    </div>
 
     <nav class="navigation">
         <button class="nav-link active" data-view="dashboard">▦ Dashboard</button>
@@ -29,9 +29,9 @@
     </nav>
 
     <div class="user-area">
-        <span class="user-avatar">♙</span>
+        <span id="studentAvatar" class="user-avatar">♙</span>
         <span class="user-details">
-            <strong>Juan dela Cruz</strong>
+            <strong id="studentNameDisplay">Loading profile...</strong>
             <small>Student Portal</small>
         </span>
         <a href="/?logout=1" class="logout" title="Log out">⇥</a>
@@ -45,7 +45,7 @@
         <div class="welcome">
             <div>
                 <span class="eyebrow">✣ STUDENT WORKSPACE</span>
-                <h1>Good evening, Juan</h1>
+                <h1 id="studentGreeting">Welcome</h1>
                 <p>Everything you need for your next academic consultation.</p>
             </div>
             <div class="date">

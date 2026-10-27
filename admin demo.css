@@ -106,6 +106,26 @@ button, a {
     color: var(--blue);
 }
 
+.nav-count {
+    display: inline-grid;
+    min-width: 17px;
+    height: 17px;
+    margin-left: 3px;
+    padding: 0 4px;
+    place-items: center;
+    border-radius: 9px;
+    background: #e9f0ff;
+    color: var(--blue);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.nav-link.active .nav-count,
+.nav-link:hover .nav-count {
+    background: #fff;
+}
+
 .user-area {
     display: flex;
     align-items: center;

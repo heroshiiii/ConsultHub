@@ -12,19 +12,19 @@
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="landing page.html" aria-label="ConsultHub home">
+        <div class="brand">
             <span class="brand-mark" aria-hidden="true">▦</span>
             <span>
                 <strong>ConsultHub</strong>
                 <small>CONSULTHUB WORKSPACE</small>
             </span>
-        </a>
+        </div>
 
         <nav class="navigation" aria-label="Admin navigation">
             <button class="nav-link active" data-view="overview"><span>▦</span> Overview</button>
             <button class="nav-link" data-view="accounts"><span>♙</span> Accounts</button>
             <button class="nav-link" data-view="faculty"><span>▣</span> Faculty</button>
-            <button class="nav-link" data-view="students"><span>♧</span> Students</button>
+            <button class="nav-link" data-view="students"><span>♧</span> Students <span id="studentNavCount" class="nav-count">(0)</span></button>
             <button class="nav-link" data-view="system"><span>⚙</span> System</button>
             <button class="nav-link" data-view="records"><span>▤</span> Records</button>
         </nav>
@@ -96,7 +96,7 @@
                 <button class="management-card" data-go="students">
                     <span class="management-icon green">♧</span>
                     <strong>Student information</strong>
-                    <small>Review student programs and year levels</small>
+                    <small><span id="studentManagementCount">0</span> students · Review programs and year levels</small>
                     <span class="management-arrow">›</span>
                 </button>
                 <button class="management-card" data-go="system">
@@ -136,7 +136,7 @@
             <div class="page-heading faculty-heading">
                 <span class="eyebrow">DIRECTORY</span>
                 <h1>Faculty information management</h1>
-                <p>Maintain faculty profiles, departments, and consultation locations.</p>
+                <p>Maintain faculty profiles, colleges, and departments. Room locations are set per availability slot.</p>
             </div>
             <div class="faculty-toolbar">
                 <label class="faculty-search">
@@ -220,10 +220,6 @@
                         <div><span>Database</span><strong>Operational</strong></div>
                         <div><span>Notifications</span><strong>Operational</strong></div>
                     </section>
-                    <section class="academic-term-card">
-                        <small>Current academic term</small>
-                        <strong>First Semester · 2024–2025</strong>
-                    </section>
                 </aside>
             </div>
         </section>
@@ -265,22 +261,31 @@
             <div class="dialog-heading">
                 <div>
                     <span class="eyebrow">ADMINISTRATION</span>
-                    <h2>Add account</h2>
+                    <h2 id="accountDialogTitle">Add account</h2>
                 </div>
                 <button id="closeAccountDialog" class="dialog-close" type="button" aria-label="Close">×</button>
             </div>
             <label>Name<input id="accountName" name="name" required autocomplete="name"></label>
             <label>Email<input id="accountEmail" name="email" type="email" required autocomplete="email"></label>
-            <label>Role
+            <label>Role <small id="accountRoleHint" class="hidden">Role cannot be changed for an existing account.</small>
                 <select id="accountRole" name="role" required>
                     <option>Student</option>
                     <option>Faculty</option>
                     <option>Administrator</option>
                 </select>
             </label>
+            <label id="accountIdNumberField"><span id="accountIdNumberLabel">Student ID number</span>
+                <input id="accountIdNumber" name="idNumber" autocomplete="off" required>
+            </label>
+            <label id="accountProgramField" class="hidden">Program
+                <input id="accountProgram" name="program" autocomplete="organization-title" required disabled>
+            </label>
+            <label id="accountCollegeField" class="hidden">College
+                <input id="accountCollege" name="college" autocomplete="organization" disabled>
+            </label>
             <div class="dialog-actions">
                 <button id="cancelAccountDialog" class="cancel-button" type="button">Cancel</button>
-                <button class="add-account-button" type="submit">Add account</button>
+                <button id="saveAccountButton" class="add-account-button" type="submit">Add account</button>
             </div>
         </form>
     </dialog>
@@ -297,8 +302,8 @@
             <label>Name<input id="facultyName" name="name" required autocomplete="name"></label>
             <label>Title<input id="facultyTitle" name="title" required placeholder="e.g. Associate Professor"></label>
             <label>Email<input id="facultyEmail" name="email" type="email" required autocomplete="email"></label>
+            <label>College<input id="facultyCollege" name="college" placeholder="e.g. College of Computing"></label>
             <label>Department<input id="facultyDepartment" name="department" required></label>
-            <label>Office<input id="facultyOffice" name="office" required></label>
             <div class="dialog-actions">
                 <button id="cancelFacultyDialog" class="cancel-button" type="button">Cancel</button>
                 <button id="saveFacultyButton" class="add-account-button" type="submit">Add faculty</button>

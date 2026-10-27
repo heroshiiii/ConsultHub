@@ -9,6 +9,18 @@ const app = express();
 const port = Number(process.env.PORT) || 3000;
 const mongoUri = process.env.MONGODB_URI;
 const sessionLifetimeMs = 8 * 60 * 60 * 1000;
+const demoAccountEmails = new Set([
+    "juan.delacruz@example.com",
+    "andrea.reyes@example.com",
+    "carlo.mendoza@example.com",
+    "sofia.villanueva@example.com",
+    "marco.tan@example.com",
+    "maria.santos@example.com",
+    "ramon.cruz@example.com",
+    "anna.lim@example.com",
+    "joel.reyes@example.com",
+    "admin@example.com"
+]);
 const sessions = new Map();
 const sessionCookie = "consulthub_session";
 const otpLifetimeMs = 5 * 60 * 1000;
@@ -26,6 +38,10 @@ const accountSchema = new mongoose.Schema({
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
     role: { type: String, required: true, trim: true, lowercase: true },
+    studentNumber: { type: String, trim: true },
+    facultyNumber: { type: String, trim: true },
+    program: { type: String, trim: true, default: "" },
+    college: { type: String, trim: true, default: "" },
     isActive: { type: Boolean }
 }, { timestamps: true, strict: false });
 
@@ -33,8 +49,9 @@ const facultySchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+    college: { type: String, trim: true, default: "" },
     department: { type: String, required: true, trim: true },
-    office: { type: String, required: true, trim: true },
+    office: { type: String, trim: true, default: "" },
     description: { type: String, default: "" },
     color: { type: String, default: "blue" },
     workload: { type: Number, default: 0 }
@@ -54,6 +71,7 @@ const slotSchema = new mongoose.Schema({
     date: { type: String, required: true },
     start: { type: String, required: true },
     end: { type: String, required: true },
+    location: { type: String, required: true, trim: true },
     capacity: { type: Number, required: true, min: 1, max: 20 },
     booked: { type: Number, default: 0, min: 0 }
 }, { timestamps: true });
@@ -67,6 +85,7 @@ const consultationSchema = new mongoose.Schema({
     program: { type: String, default: "" },
     facultyName: { type: String, required: true, trim: true },
     facultyId: { type: mongoose.Schema.Types.ObjectId, ref: "Faculty", default: null },
+    college: { type: String, default: "" },
     department: { type: String, required: true },
     location: { type: String, required: true },
     slotId: { type: String, default: "" },
@@ -159,14 +178,29 @@ async function findUserProfile(email) {
     const student = role === "Student"
         ? await Student.findOne({ email: account.email }).lean()
         : null;
-    return {
+    const profile = {
         id: String(account._id),
         name: account.fullName || account.name || "",
         email: account.email,
         role,
         studentNumber: student?.studentNumber || account.studentId || account.studentNumber || account.email,
-        program: student?.program || account.program || account.department || ""
+        program: account.program || student?.program || account.department || "",
+        college: account.college || ""
     };
+    if (role === "Faculty") {
+        const faculty = await Faculty.findOne({ email: account.email }).lean();
+        if (faculty) {
+            Object.assign(profile, {
+                facultyId: String(faculty._id),
+                title: faculty.title,
+                college: faculty.college || account.college || "",
+                department: faculty.department,
+                office: faculty.office,
+                description: faculty.description || ""
+            });
+        }
+    }
+    return profile;
 }
 
 async function currentUser(request) {
@@ -181,8 +215,12 @@ async function upsertUserForProfile({ name, email, role }) {
     await Account.findOneAndUpdate(
         { email: email.toLowerCase() },
         {
-            $set: { fullName: name, email: email.toLowerCase(), role: storedRole(role) },
-            $setOnInsert: { isActive: true }
+            $set: {
+                fullName: name,
+                email: email.toLowerCase(),
+                role: storedRole(role),
+                isActive: true
+            }
         },
         { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
@@ -196,6 +234,7 @@ async function migrateLegacyAccounts() {
         const email = String(record.email || "").trim().toLowerCase();
         const role = normalizeRole(record.role);
         if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !role) continue;
+        if (demoAccountEmails.has(email)) continue;
         const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         await Account.updateOne(
             { email: new RegExp(`^${escapedEmail}$`, "i") },
@@ -307,6 +346,19 @@ async function migrateLegacySlots() {
                 reservedCount: ""
             }
         });
+    }
+}
+
+async function migrateSlotLocations() {
+    const records = await mongoose.connection.db.collection("slots").find({
+        $or: [{ location: { $exists: false } }, { location: "" }]
+    }).toArray();
+    for (const record of records) {
+        const faculty = await Faculty.findById(record.facultyId).select("office").lean();
+        await mongoose.connection.db.collection("slots").updateOne(
+            { _id: record._id },
+            { $set: { location: faculty?.office || "Room to be confirmed" } }
+        );
     }
 }
 
@@ -529,9 +581,10 @@ async function listAppointments(request, response) {
 
     let filter = {};
     if (user.role === "Student") {
+        const escapedEmail = user.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         filter = {
             $or: [
-                { studentEmail: user.email },
+                { studentEmail: new RegExp(`^${escapedEmail}$`, "i") },
                 { studentNumber: user.studentNumber },
                 { studentId: user.studentNumber },
                 { student: user.name }
@@ -674,36 +727,192 @@ app.post("/api/accounts", requireFields(["name", "email", "role"]), asyncRoute(a
     if (!role) {
         return response.status(400).json({ error: "Choose a valid account role." });
     }
+    const idNumber = String(request.body.idNumber || "").trim();
+    const idField = role === "Student" ? "studentNumber" : role === "Faculty" ? "facultyNumber" : null;
+    const program = role === "Student" ? String(request.body.program || "").trim() : "";
+    const college = role === "Faculty" ? String(request.body.college || "").trim() : "";
+    if (idField && !idNumber) {
+        return response.status(400).json({ error: `Enter an ID number for this ${role.toLowerCase()} account.` });
+    }
+    if (role === "Student" && !program) {
+        return response.status(400).json({ error: "Enter a program for this student account." });
+    }
     const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (await Account.exists({ email: new RegExp(`^${escapedEmail}$`, "i") })) {
         return response.status(409).json({ error: "An account with this email already exists." });
+    }
+    if (idField) {
+        const escapedIdNumber = idNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (await Account.exists({ [idField]: new RegExp(`^${escapedIdNumber}$`, "i") })) {
+            return response.status(409).json({ error: `A ${role.toLowerCase()} account with this ID number already exists.` });
+        }
+        if (role === "Student") {
+            const linkedStudent = await Student.findOne({ email });
+            if (linkedStudent && linkedStudent.studentNumber.toLowerCase() !== idNumber.toLowerCase()) {
+                return response.status(409).json({ error: "The ID number must match the existing student profile." });
+            }
+            const escapedStudentNumber = idNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            if (await Student.exists({
+                ...(linkedStudent ? { _id: { $ne: linkedStudent._id } } : {}),
+                studentNumber: new RegExp(`^${escapedStudentNumber}$`, "i")
+            })) {
+                return response.status(409).json({ error: "A student profile with this ID number already exists." });
+            }
+        }
     }
     const account = await Account.create({
         fullName: name,
         email,
         role: storedRole(role),
+        ...(idField ? { [idField]: idNumber } : {}),
+        ...(role === "Student" ? { program } : {}),
+        ...(role === "Faculty" ? { college } : {}),
         isActive: true
     });
     response.status(201).json(serializeAccount(account));
 }));
 
 app.patch("/api/accounts/:id", asyncRoute(async (request, response) => {
-    if (!["Active", "Suspended"].includes(request.body.status)) {
+    const account = await Account.findById(request.params.id);
+    if (!account) return response.status(404).json({ error: "Account not found." });
+
+    const hasAccountEdits = ["name", "email", "idNumber", "program", "college"].some((field) => request.body[field] !== undefined);
+    if (!hasAccountEdits && request.body.status === undefined) {
+        return response.status(400).json({ error: "Provide account changes or a valid status." });
+    }
+    if (request.body.status !== undefined && !["Active", "Suspended"].includes(request.body.status)) {
         return response.status(400).json({ error: "Account status must be Active or Suspended." });
     }
-    const account = await Account.findByIdAndUpdate(
-        request.params.id,
-        { isActive: request.body.status === "Active" },
-        { new: true, runValidators: true }
-    );
-    if (!account) return response.status(404).json({ error: "Account not found." });
+    if (request.body.role !== undefined && normalizeRole(request.body.role) !== normalizeRole(account.role)) {
+        return response.status(400).json({ error: "An account's role cannot be changed." });
+    }
+
+    if (hasAccountEdits) {
+        const name = String(request.body.name ?? account.fullName ?? account.name ?? "").trim();
+        const email = String(request.body.email ?? account.email).trim().toLowerCase();
+        const role = normalizeRole(account.role);
+        const idField = role === "Student" ? "studentNumber" : role === "Faculty" ? "facultyNumber" : null;
+        const idNumber = String(request.body.idNumber ?? account[idField] ?? "").trim();
+        const program = role === "Student" ? String(request.body.program ?? account.program ?? "").trim() : "";
+        const college = role === "Faculty" ? String(request.body.college ?? account.college ?? "").trim() : "";
+        if (!name) return response.status(400).json({ error: "Enter the account name." });
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return response.status(400).json({ error: "Please enter a valid email address." });
+        }
+
+        const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (await Account.exists({ _id: { $ne: account._id }, email: new RegExp(`^${escapedEmail}$`, "i") })) {
+            return response.status(409).json({ error: "An account with this email already exists." });
+        }
+
+        let studentProfile = null;
+        let facultyProfile = null;
+        if (role === "Student") {
+            studentProfile = await Student.findOne({ email: account.email });
+            const profileEmailExists = await Student.exists({
+                ...(studentProfile ? { _id: { $ne: studentProfile._id } } : {}),
+                email: new RegExp(`^${escapedEmail}$`, "i")
+            });
+            if (profileEmailExists) {
+                return response.status(409).json({ error: "A student profile with this email already exists." });
+            }
+            const profileIdExists = idNumber ? await Student.exists({
+                ...(studentProfile ? { _id: { $ne: studentProfile._id } } : {}),
+                studentNumber: new RegExp(`^${idNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+            }) : false;
+            if (!idNumber || profileIdExists) {
+                return response.status(profileIdExists ? 409 : 400).json({
+                    error: profileIdExists ? "A student profile with this ID number already exists." : "Enter an ID number for this student account."
+                });
+            }
+        } else if (role === "Faculty") {
+            facultyProfile = await Faculty.findOne({ email: account.email });
+            if (facultyProfile) {
+                const profileEmailExists = await Faculty.exists({
+                    _id: { $ne: facultyProfile._id },
+                    email: new RegExp(`^${escapedEmail}$`, "i")
+                });
+                if (profileEmailExists) {
+                    return response.status(409).json({ error: "A faculty profile with this email already exists." });
+                }
+            }
+        }
+
+        if (idField) {
+            if (!idNumber) {
+                return response.status(400).json({ error: `Enter an ID number for this ${role.toLowerCase()} account.` });
+            }
+            const escapedIdNumber = idNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            if (await Account.exists({
+                _id: { $ne: account._id },
+                [idField]: new RegExp(`^${escapedIdNumber}$`, "i")
+            })) {
+                return response.status(409).json({ error: `A ${role.toLowerCase()} account with this ID number already exists.` });
+            }
+            account[idField] = idNumber;
+        }
+        if (role === "Student" && !program) {
+            return response.status(400).json({ error: "Enter a program for this student account." });
+        }
+
+        const previousEmail = account.email;
+        account.fullName = name;
+        account.email = email;
+        if (role === "Student") account.program = program;
+        if (role === "Faculty") account.college = college;
+        if (request.body.status !== undefined) {
+            account.isActive = request.body.status === "Active";
+        }
+        if (studentProfile) {
+            studentProfile.name = name;
+            studentProfile.email = email;
+            studentProfile.studentNumber = idNumber;
+            studentProfile.program = program;
+            await studentProfile.save();
+            const escapedPreviousEmail = previousEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            await Consultation.updateMany(
+                { studentEmail: new RegExp(`^${escapedPreviousEmail}$`, "i") },
+                { $set: { studentEmail: email } }
+            );
+        }
+        if (facultyProfile) {
+            facultyProfile.name = name;
+            facultyProfile.email = email;
+            facultyProfile.college = college;
+            await facultyProfile.save();
+        }
+        await account.save();
+    } else {
+        account.isActive = request.body.status === "Active";
+        await account.save();
+    }
     response.json(serializeAccount(account));
 }));
 
-app.post("/api/faculty", requireFields(["name", "title", "email", "department", "office"]), asyncRoute(async (request, response) => {
+app.post("/api/faculty", requireFields(["name", "title", "email", "department"]), asyncRoute(async (request, response) => {
     const faculty = await Faculty.create(request.body);
     await upsertUserForProfile({ name: faculty.name, email: faculty.email, role: "Faculty" });
     response.status(201).json(serialize(faculty));
+}));
+
+app.patch("/api/faculty/me", asyncRoute(async (request, response) => {
+    const user = await currentUser(request);
+    if (!user || user.role !== "Faculty") {
+        return response.status(403).json({ error: "An active faculty account is required to update this profile." });
+    }
+    const faculty = await Faculty.findOne({ email: user.email });
+    if (!faculty) return response.status(404).json({ error: "Faculty profile not found." });
+
+    const fields = ["name", "title", "college", "department", "description"];
+    for (const field of fields) {
+        if (request.body[field] !== undefined) faculty[field] = String(request.body[field]).trim();
+    }
+    if (!faculty.name || !faculty.title || !faculty.department) {
+        return response.status(400).json({ error: "Name, title, and department are required." });
+    }
+    await faculty.save();
+    await upsertUserForProfile({ name: faculty.name, email: faculty.email, role: "Faculty" });
+    response.json(serialize(faculty));
 }));
 
 app.patch("/api/faculty/:id", asyncRoute(async (request, response) => {
@@ -741,11 +950,14 @@ app.patch("/api/students/:id", asyncRoute(async (request, response) => {
     response.json(serialize(student));
 }));
 
-app.post("/api/slots", requireFields(["facultyId", "date", "start", "end", "capacity"]), asyncRoute(async (request, response) => {
+app.post("/api/slots", requireFields(["facultyId", "date", "start", "end", "location", "capacity"]), asyncRoute(async (request, response) => {
     const start = timeInMinutes(request.body.start);
     const end = timeInMinutes(request.body.end);
     if (start === null || end === null || start >= end) {
         return response.status(400).json({ error: "Slot end time must be after its start time." });
+    }
+    if (!String(request.body.location).trim()) {
+        return response.status(400).json({ error: "Enter the room or location for this slot." });
     }
     if (!await Faculty.exists({ _id: request.body.facultyId })) {
         return response.status(404).json({ error: "Faculty member not found." });
@@ -761,6 +973,9 @@ app.patch("/api/slots/:id", asyncRoute(async (request, response) => {
     const end = timeInMinutes(request.body.end ?? slot.end);
     if (start === null || end === null || start >= end) {
         return response.status(400).json({ error: "Slot end time must be after its start time." });
+    }
+    if (request.body.location !== undefined && !String(request.body.location).trim()) {
+        return response.status(400).json({ error: "Enter the room or location for this slot." });
     }
     const capacity = request.body.capacity ?? slot.capacity;
     const reservations = slot.booked;
@@ -785,15 +1000,14 @@ const createAppointment = asyncRoute(async (request, response) => {
     if (!user || user.role !== "Student") {
         return response.status(403).json({ error: "An active student account is required to book an appointment." });
     }
-    const required = ["facultyId", "date", "reason", "slotId"];
+    const required = ["facultyId", "date", "slotId"];
     const missing = required.filter((field) =>
         request.body[field] === undefined || request.body[field] === null || request.body[field] === ""
     );
     if (missing.length) {
         return response.status(400).json({ error: `Required fields: ${missing.join(", ")}` });
     }
-    const reason = String(request.body.reason).trim();
-    if (!reason) return response.status(400).json({ error: "Enter a reason for the appointment." });
+    const reason = String(request.body.reason || "").trim();
 
     const faculty = await Faculty.findById(request.body.facultyId);
     if (!faculty) return response.status(404).json({ error: "Faculty member not found." });
@@ -824,8 +1038,9 @@ const createAppointment = asyncRoute(async (request, response) => {
             studentNumber: user.studentNumber,
             program: user.program,
             facultyName: faculty.name,
+            college: faculty.college || "",
             department: faculty.department,
-            location: faculty.office,
+            location: slot.location,
             slotId: slot.id,
             facultyId: faculty.id,
             date: slot.date,
@@ -889,94 +1104,14 @@ app.use((error, _request, response, _next) => {
 });
 
 async function seedIfEmpty() {
-    const accounts = [
-        ["Juan dela Cruz", "juan.delacruz@example.com", "Student"],
-        ["Andrea Reyes", "andrea.reyes@example.com", "Student"],
-        ["Carlo Mendoza", "carlo.mendoza@example.com", "Student"],
-        ["Sofia Villanueva", "sofia.villanueva@example.com", "Student"],
-        ["Marco Tan", "marco.tan@example.com", "Student"],
-        ["Dr. Maria Santos", "maria.santos@example.com", "Faculty"],
-        ["Prof. Ramon Cruz", "ramon.cruz@example.com", "Faculty"],
-        ["Dr. Anna Lim", "anna.lim@example.com", "Faculty"],
-        ["Prof. Joel Reyes", "joel.reyes@example.com", "Faculty"],
-        ["System Administrator", "admin@example.com", "Administrator"]
-    ].map(([name, email, role]) => ({ name, email, role }));
-    const faculty = [
-        { name: "Dr. Maria Santos", title: "Associate Professor", email: "maria.santos@example.com", department: "Computer Science", office: "CS Building Room 204", description: "Specializes in algorithms, data structures, and software engineering. Available for thesis advising and course inquiries.", color: "blue", workload: 8 },
-        { name: "Prof. Ramon Cruz", title: "Assistant Professor", email: "ramon.cruz@example.com", department: "Mathematics", office: "Math Building Room 108", description: "Teaches Calculus, Linear Algebra, and Discrete Mathematics. Research focus on applied mathematics.", color: "cyan", workload: 7 },
-        { name: "Dr. Anna Lim", title: "Professor", email: "anna.lim@example.com", department: "Information Technology", office: "IT Building Room 312", description: "Expert in database systems, cloud computing, and network administration. Available for internship endorsements.", color: "purple", workload: 9 },
-        { name: "Prof. Joel Reyes", title: "Instructor", email: "joel.reyes@example.com", department: "English", office: "Liberal Arts Building Room 105", description: "Teaches Technical Writing and Communication Arts. Available for thesis writing consultations.", color: "green", workload: 5 }
-    ];
-    const students = [
-        { name: "Juan dela Cruz", email: "juan.delacruz@example.com", studentNumber: "2021-00123", program: "BS Computer Science", year: "Year 3", section: "3A" },
-        { name: "Andrea Reyes", email: "andrea.reyes@example.com", studentNumber: "2022-00456", program: "BS Information Technology", year: "Year 2", section: "2B" },
-        { name: "Carlo Mendoza", email: "carlo.mendoza@example.com", studentNumber: "2020-00789", program: "BS Computer Science", year: "Year 4", section: "4A" },
-        { name: "Sofia Villanueva", email: "sofia.villanueva@example.com", studentNumber: "2023-00321", program: "BS Mathematics", year: "Year 1", section: "1C" },
-        { name: "Marco Tan", email: "marco.tan@example.com", studentNumber: "2021-00654", program: "BS Computer Science", year: "Year 3", section: "3B" }
-    ];
-
-    for (const [Model, samples] of [[Faculty, faculty], [Student, students]]) {
-        for (const sample of samples) {
-            const localPart = sample.email.split("@")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            const records = await Model.find({
-                name: sample.name,
-                email: new RegExp(`^${localPart}@`, "i")
-            });
-            for (const record of records) {
-                if (record.email.toLowerCase() === sample.email.toLowerCase()) continue;
-                const existing = await Model.findOne({ email: sample.email, _id: { $ne: record.id } }).select("_id");
-                if (existing) {
-                    throw new Error(`Cannot migrate demo email for ${record.name}: ${sample.email} is already in use.`);
-                }
-                record.email = sample.email;
-                await record.save();
-            }
-        }
-    }
-
-    if (await Account.countDocuments() === 0) {
-        await Account.insertMany(accounts.map(({ name, email, role }) => ({
-            fullName: name,
-            email,
-            role: storedRole(role),
-            isActive: true
-        })));
-    }
-    if (await Faculty.countDocuments() === 0) await Faculty.insertMany(faculty);
-    if (await Student.countDocuments() === 0) await Student.insertMany(students);
     if (await Policy.countDocuments() === 0) await Policy.create({ key: "default" });
-
-    if (await mongoose.connection.db.collection("slots").countDocuments() === 0) {
-        const facultyRecords = await Faculty.find();
-        const nextMonday = new Date();
-        nextMonday.setDate(nextMonday.getDate() + ((8 - nextMonday.getDay()) % 7 || 7));
-        const date = (offset) => {
-            const value = new Date(nextMonday);
-            value.setDate(value.getDate() + offset);
-            return [value.getFullYear(), String(value.getMonth() + 1).padStart(2, "0"), String(value.getDate()).padStart(2, "0")].join("-");
-        };
-        const defaults = [
-            { email: "maria.santos@example.com", offset: 0, start: "10:00 AM", end: "11:00 AM" },
-            { email: "maria.santos@example.com", offset: 1, start: "02:00 PM", end: "03:00 PM" },
-            { email: "anna.lim@example.com", offset: 0, start: "10:00 AM", end: "11:00 AM" },
-            { email: "anna.lim@example.com", offset: 1, start: "02:00 PM", end: "03:00 PM" },
-            { email: "ramon.cruz@example.com", offset: 0, start: "01:00 PM", end: "02:00 PM" },
-            { email: "joel.reyes@example.com", offset: 1, start: "03:00 PM", end: "04:00 PM" }
-        ];
-        await Slot.insertMany(defaults.map((item) => ({
-            facultyId: facultyRecords.find((member) => member.email === item.email).id,
-            date: date(item.offset),
-            start: item.start,
-            end: item.end,
-            capacity: 5
-        })));
-    }
 }
 
 mongoose.connect(mongoUri)
     .then(migrateLegacyAccounts)
     .then(seedIfEmpty)
     .then(migrateLegacySlots)
+    .then(migrateSlotLocations)
     .then(migrateLegacyAppointments)
     .then(() => app.listen(port, () => console.log(`ConsultHub is available at http://localhost:${port}`)))
     .catch((error) => {

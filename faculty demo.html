@@ -12,10 +12,10 @@
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="landing page.html" aria-label="ConsultHub home">
+        <div class="brand">
             <span class="brand-mark" aria-hidden="true">▦</span>
             <span><strong>ConsultHub</strong><small>CONSULTHUB WORKSPACE</small></span>
-        </a>
+        </div>
         <nav class="navigation" aria-label="Faculty navigation">
             <button class="nav-link active" data-view="dashboard"><span>▦</span> Dashboard</button>
             <button class="nav-link" data-view="availability"><span>⚙</span> Manage Availability</button>
@@ -23,8 +23,8 @@
             <button class="nav-link" data-view="appointments"><span>♧</span> Appointments</button>
         </nav>
         <div class="user-area">
-            <span class="user-avatar">MS</span>
-            <span class="user-details"><strong>Dr. Maria Santos</strong><small>Faculty Portal</small></span>
+            <span id="facultyAvatar" class="user-avatar">F</span>
+            <span class="user-details"><strong id="facultyNameDisplay">Faculty</strong><small>Faculty Portal</small></span>
             <a class="logout" href="/?logout=1" title="Log out" aria-label="Log out">⇥</a>
         </div>
     </header>
@@ -32,7 +32,7 @@
     <main class="container">
         <section id="dashboard" class="page-view">
             <div class="welcome">
-                <div><span class="eyebrow">✦ &nbsp; FACULTY WORKSPACE</span><h1>Good morning, Maria</h1><p>Your consultations, attendance, and availability at a glance.</p></div>
+                <div><span class="eyebrow">✦ &nbsp; FACULTY WORKSPACE</span><h1 id="facultyGreeting">Welcome</h1><p>Your consultations, attendance, and availability at a glance.</p></div>
                 <div class="date"><span id="dayName"></span><strong id="currentDate"></strong></div>
             </div>
             <div class="quick-actions">
@@ -67,6 +67,7 @@
                 <label>Date<input id="slotDate" type="date" required></label>
                 <label>Start time<input id="slotStart" type="time" required></label>
                 <label>End time<input id="slotEnd" type="time" required></label>
+                <label>Room / location<input id="slotLocation" type="text" placeholder="Building and room" required></label>
                 <label>Student capacity<input id="slotCapacity" type="number" min="1" max="20" value="5" required></label>
                 <p id="slotFormMessage" class="form-message" role="status"></p>
                 <div class="slot-form-actions">
@@ -125,6 +126,7 @@
             </div>
             <div id="appointmentsList" class="appointment-groups"></div>
         </section>
+
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="api-client.js"></script>

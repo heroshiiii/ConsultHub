@@ -66,11 +66,13 @@ function showToast(message) {
 
 function openModal(html) {
     $("#modalContent").innerHTML = html;
+    $(".modal-card").classList.toggle("booking-modal-card", Boolean($("#bookingForm")));
     $("#modal").classList.remove("hidden");
 }
 
 function closeModal() {
     $("#modal").classList.add("hidden");
+    $(".modal-card").classList.remove("booking-modal-card");
 }
 
 $("#closeModal").addEventListener("click", closeModal);
@@ -97,10 +99,22 @@ function showPage(page) {
 
     if (page === "dashboard") renderDashboard();
     if (page === "consultations") renderFaculty();
-    if (page === "appointments") renderAppointments();
-    if (page === "history") renderHistory();
+    if (page === "appointments" || page === "history") {
+        refreshAppointments();
+    }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function refreshAppointments() {
+    try {
+        appointments = await api.get("appointments");
+        renderDashboard();
+        renderAppointments();
+        renderHistory();
+    } catch (error) {
+        showToast(`Could not refresh appointments: ${error.message}`);
+    }
 }
 
 $$("[data-view]").forEach((button) => {
@@ -204,7 +218,7 @@ function renderFaculty() {
     const department = $("#departmentFilter").value;
 
     const filtered = facultyMembers.filter((faculty) => {
-        const text = (faculty.name + " " + faculty.title + " " + faculty.department).toLowerCase();
+        const text = (faculty.name + " " + faculty.title + " " + (faculty.college || "") + " " + faculty.department).toLowerCase();
 
         return text.includes(search) &&
             (department === "all" || faculty.department === department);
@@ -227,8 +241,9 @@ function renderFaculty() {
                 </div>
 
                 <div class="faculty-meta">
+                    ${faculty.college ? `<p><span aria-hidden="true">▦</span> ${escapeHTML(faculty.college)}</p>` : ""}
                     <p><span aria-hidden="true">▦</span> Department of ${escapeHTML(faculty.department)}</p>
-                    <p><span aria-hidden="true">⌖</span> ${escapeHTML(faculty.office)}</p>
+                    <p><span aria-hidden="true">⌖</span> Room is listed with each available slot</p>
                 </div>
                 <p class="faculty-description">${escapeHTML(faculty.description)}</p>
                 <div class="faculty-availability">
@@ -263,7 +278,7 @@ function renderAppointments() {
                         <span class="avatar appointment-avatar">${initials(item.faculty)}</span>
                         <div class="person-info">
                             <strong>${escapeHTML(item.faculty)}</strong>
-                            <small>${escapeHTML(item.department)}</small>
+                            <small>${escapeHTML(item.college ? `${item.college} · ${item.department}` : item.department)}</small>
                         </div>
                     </div>
                     ${badge(item.status)}
@@ -403,25 +418,63 @@ document.addEventListener("click", async (event) => {
         String(today.getDate()).padStart(2, "0")
     ].join("-");
 
+    const availableSlots = consultationSlots.filter((slot) =>
+        slot.date >= localToday && slot.booked < slot.capacity
+    );
     openModal(`
-        <h2>Book Consultation</h2>
-        <p>Choose a date and time for ${escapeHTML(selectedFaculty.name)}.</p>
+        <div class="booking-modal">
+            <div class="booking-modal-heading">
+                <span class="booking-modal-icon" aria-hidden="true">▦</span>
+                <span class="booking-modal-kicker">CONSULTHUB · NEW APPOINTMENT</span>
+                <h2>Book a consultation</h2>
+                <p>Choose an available date and time for your consultation.</p>
+            </div>
 
-        <form id="bookingForm">
-            <label for="bookingTime">Available consultation slot</label>
-            <select id="bookingTime" required>
-                <option value="">Select an available slot</option>
-                ${consultationSlots.filter((slot) => slot.date >= localToday && slot.booked < slot.capacity).map((slot) =>
-                    `<option value="${escapeHTML(slot.id)}">${escapeHTML(prettyDate(slot.date))} · ${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</option>`
-                ).join("")}
-            </select>
+            <div class="booking-faculty">
+                <span class="booking-faculty-avatar">${initials(selectedFaculty.name)}</span>
+                <span>
+                    <strong>${escapeHTML(selectedFaculty.name)}</strong>
+                    <small>${escapeHTML(selectedFaculty.title)} · ${escapeHTML(selectedFaculty.department)}</small>
+                </span>
+            </div>
 
-            <label for="bookingReason">Reason for Consultation</label>
-            <input id="bookingReason" placeholder="e.g. Project consultation" required>
+            <form id="bookingForm" class="booking-form">
+                <label for="bookingTime">Available date and time</label>
+                <select id="bookingTime" required ${availableSlots.length ? "" : "disabled"}>
+                    <option value="">${availableSlots.length ? "Choose an available slot" : "No available times right now"}</option>
+                    ${availableSlots.map((slot) =>
+                        `<option value="${escapeHTML(slot.id)}">${escapeHTML(prettyDate(slot.date))} · ${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</option>`
+                    ).join("")}
+                </select>
+                <div id="bookingSlotDetails" class="booking-slot-details" aria-live="polite" hidden></div>
 
-            <button class="primary-button" type="submit">Submit Appointment</button>
-        </form>
+                <button class="primary-button booking-submit" type="submit" ${availableSlots.length ? "" : "disabled"}>
+                    Confirm appointment <span aria-hidden="true">→</span>
+                </button>
+                <small class="booking-secure-note"><span aria-hidden="true">✓</span> You’ll see your reservation in My Appointments after confirming.</small>
+            </form>
+        </div>
     `);
+    $("#bookingTime").addEventListener("change", (changeEvent) => {
+        const slot = availableSlots.find((item) => item.id === changeEvent.target.value);
+        const details = $("#bookingSlotDetails");
+        if (!slot) {
+            details.hidden = true;
+            details.innerHTML = "";
+            return;
+        }
+        details.innerHTML = `
+            <span class="booking-slot-detail">
+                <small>Date</small>
+                <strong>${escapeHTML(prettyDate(slot.date))}</strong>
+            </span>
+            <span class="booking-slot-detail">
+                <small>Time</small>
+                <strong>${escapeHTML(slot.start)} – ${escapeHTML(slot.end)}</strong>
+            </span>
+        `;
+        details.hidden = false;
+    });
 });
 
 document.addEventListener("submit", async (event) => {
@@ -430,28 +483,33 @@ document.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const slotId = $("#bookingTime").value;
-    const reason = $("#bookingReason").value.trim();
 
-    if (!selectedFaculty || !slotId || !reason) return;
+    if (!selectedFaculty || !slotId) return;
     const slot = consultationSlots.find((item) => item.id === slotId);
     if (!slot) {
         showToast("Choose an available consultation slot.");
         return;
     }
 
+    const submitButton = event.submitter;
+    if (submitButton) submitButton.disabled = true;
     try {
-        const appointment = await api.create("appointments", {
+        const savedAppointment = await api.create("appointments", {
             facultyId: selectedFaculty.id,
             slotId,
-            date: slot.date,
-            reason
+            date: slot.date
         });
-        appointments.push(appointment);
+        appointments = [
+            ...appointments.filter((item) => item.id !== savedAppointment.id),
+            savedAppointment
+        ];
         closeModal();
         showPage("appointments");
         showToast("Appointment saved.");
     } catch (error) {
-        showToast(error.message);
+        showToast(`Appointment wasn't saved: ${error.message}`);
+    } finally {
+        if (submitButton) submitButton.disabled = false;
     }
 });
 
@@ -470,7 +528,7 @@ document.addEventListener("click", (event) => {
 
     openModal(`
         <h2>${escapeHTML(item.faculty)}</h2>
-        <p>${escapeHTML(item.department)}</p>
+        <p>${escapeHTML(item.college ? `${item.college} · ${item.department}` : item.department)}</p>
 
         <div class="details">
             <div>▦ &nbsp; ${escapeHTML(prettyDate(item.date))}</div>
@@ -480,13 +538,14 @@ document.addEventListener("click", (event) => {
             ${item.reason ? `<div>Reason: ${escapeHTML(item.reason)}</div>` : ""}
         </div>
 
-        ${item.status === "Confirmed" ? `
-            <button class="primary-button" data-checkin="${item.id}">
-                Check In
-            </button>
-        ` : ""}
-
-        <button class="small-button" id="closeDetails">Close</button>
+        <div class="details-actions">
+            ${item.status === "Confirmed" ? `
+                <button class="primary-button" data-checkin="${item.id}">
+                    Check In
+                </button>
+            ` : ""}
+            <button class="small-button" id="closeDetails">Close</button>
+        </div>
     `);
 
     $("#closeDetails").addEventListener("click", closeModal);
@@ -532,6 +591,11 @@ async function initializeStudentPage() {
         if (currentStudent.role !== "Student") {
             throw new Error("An active student account is required to view this dashboard.");
         }
+        const studentName = currentStudent.name || currentStudent.email;
+        const firstName = studentName.split(/\s+/)[0];
+        $("#studentNameDisplay").textContent = studentName;
+        $("#studentAvatar").textContent = initials(studentName);
+        $("#studentGreeting").textContent = `Welcome, ${firstName}`;
         const [facultyData, slotData, appointmentData] = await Promise.all([
             api.get("faculty"),
             api.get("slots"),
