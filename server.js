@@ -749,10 +749,9 @@ async function listAppointments(request, response) {
         filter = { $or: [{ facultyId: faculty.id }, { facultyName: faculty.name }] };
     }
 
-    const [appointments, history] = await Promise.all([
-        Consultation.find(filter).sort({ date: -1, createdAt: -1 }),
-        AppointmentHistory.find(filter).sort({ date: -1, createdAt: -1 })
-    ]);
+    const appointments = await Consultation.find(filter).sort({ date: -1, createdAt: -1 });
+    await archiveAppointments(appointments);
+    const history = await AppointmentHistory.find(filter).sort({ date: -1, createdAt: -1 });
     const byId = new Map(appointments.map((appointment) => [
         String(appointment._id),
         serializeAppointment(appointment)
