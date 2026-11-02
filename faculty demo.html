@@ -133,6 +133,20 @@
         </section>
 
     </main>
+    <dialog id="cancelSlotDialog" class="cancel-slot-dialog" aria-labelledby="cancelSlotTitle" aria-describedby="cancelSlotDescription">
+        <form method="dialog" class="cancel-slot-content">
+            <span class="cancel-slot-icon" aria-hidden="true">!</span>
+            <div class="cancel-slot-copy">
+                <h2 id="cancelSlotTitle">Cancel this consultation slot?</h2>
+                <p id="cancelSlotSummary"></p>
+                <p id="cancelSlotDescription" class="cancel-slot-warning"></p>
+            </div>
+            <div class="cancel-slot-actions">
+                <button class="cancel-button" type="submit" value="keep">Keep slot</button>
+                <button id="confirmCancelSlot" class="danger-button" type="submit" value="confirm">Cancel slot</button>
+            </div>
+        </form>
+    </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="api-client.js"></script>
     <script src="appointment-time.js"></script>

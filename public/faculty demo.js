@@ -15,6 +15,7 @@ let activeAppointmentFilter = "all";
 let slots = [];
 let toastTimer;
 let editingSlotId = null;
+let pendingSlotCancellation = null;
 let checkinWindow = 20;
 
 function dateOffset(startDate, offset) {
@@ -480,28 +481,12 @@ document.addEventListener("click", async (event) => {
     if (deleteButton) {
         const slot = slots.find((item) => item.id === deleteButton.dataset.deleteSlot);
         if (!slot) return;
-        const reservationMessage = slot.booked > 0
-            ? `${slot.booked} student reservation${slot.booked === 1 ? "" : "s"} will be cancelled and shown in those students' history.`
-            : "This availability will be removed.";
-        if (!window.confirm(`Cancel ${slotDateLabel(slot.date)} at ${slot.start}–${slot.end}?\n\n${reservationMessage}`)) return;
-        try {
-            const result = await api.remove(`slots/${slot.id}`);
-            slots = slots.filter((item) => item.id !== slot.id);
-            appointments = appointments.map((appointment) =>
-                appointment.slotId === slot.id && appointment.status === "Confirmed"
-                    ? { ...appointment, status: "Cancelled" }
-                    : appointment
-            );
-            renderAppointments();
-        } catch (error) {
-            showToast(error.message);
-            return;
-        }
-        renderAvailability();
-        renderDashboard();
-        showToast(result.cancelled
-            ? `Slot cancelled. ${result.cancelled} student reservation${result.cancelled === 1 ? "" : "s"} cancelled.`
-            : "Availability slot cancelled.");
+        pendingSlotCancellation = slot;
+        $("#cancelSlotSummary").textContent = `${slotDateLabel(slot.date)} · ${slot.start}–${slot.end} · ${slot.location}`;
+        $("#cancelSlotDescription").textContent = slot.booked > 0
+            ? `${slot.booked} student reservation${slot.booked === 1 ? "" : "s"} will be cancelled and shown in those students’ history.`
+            : "No students have reserved this slot. It will be removed from your availability.";
+        $("#cancelSlotDialog").showModal();
         return;
     }
     const checkin = event.target.closest("[data-toggle-checkin]");
@@ -524,6 +509,34 @@ document.addEventListener("click", async (event) => {
         showToast(student.checked ? "Student marked present." : "Check-in undone.");
     }
 });
+
+$("#cancelSlotDialog").addEventListener("close", async () => {
+    const slot = pendingSlotCancellation;
+    pendingSlotCancellation = null;
+    if ($("#cancelSlotDialog").returnValue !== "confirm" || !slot) return;
+
+    $("#confirmCancelSlot").disabled = true;
+    try {
+        const result = await api.remove(`slots/${slot.id}`);
+        slots = slots.filter((item) => item.id !== slot.id);
+        appointments = appointments.map((appointment) =>
+            appointment.slotId === slot.id && appointment.status === "Confirmed"
+                ? { ...appointment, status: "Cancelled" }
+                : appointment
+        );
+        renderAppointments();
+        renderAvailability();
+        renderDashboard();
+        showToast(result.cancelled
+            ? `Slot cancelled. ${result.cancelled} student reservation${result.cancelled === 1 ? "" : "s"} cancelled.`
+            : "Availability slot cancelled.");
+    } catch (error) {
+        showToast(error.message);
+    } finally {
+        $("#confirmCancelSlot").disabled = false;
+    }
+});
+
 $("#studentSearch").addEventListener("input", renderAppointments);
 
 setInterval(() => {
