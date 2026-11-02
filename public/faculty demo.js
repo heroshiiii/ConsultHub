@@ -15,11 +15,16 @@ let activeAppointmentFilter = "all";
 let slots = [];
 let toastTimer;
 let editingSlotId = null;
+let checkinWindow = 20;
 
 function dateOffset(startDate, offset) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + offset);
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
+function isCheckInOpen(item) {
+    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, 10);
 }
 
 function escapeHTML(value) {
@@ -310,11 +315,14 @@ function renderAppointments() {
                             </span>
                             <span class="appointment-time"><span aria-hidden="true">◷</span>${escapeHTML(student.time)}</span>
                             <span class="appointment-status ${statusClass(student.status)}">${escapeHTML(student.status)}</span>
-                            <button class="checkin-status ${student.checked ? "checked" : "not-checked"}"
-                                type="button" data-toggle-checkin="${index}"
-                                aria-label="${student.checked ? "Undo check-in for" : "Mark present"} ${escapeHTML(student.name)}">
-                                <span aria-hidden="true">●</span>${student.checked ? "Checked In" : "Not Checked In"}
-                            </button>
+                            ${student.checked
+                                ? `<span class="checkin-status checked" aria-label="Checked in ${escapeHTML(student.name)}"><span aria-hidden="true">●</span>Checked In</span>`
+                                : `<button class="checkin-status not-checked" type="button" data-toggle-checkin="${index}"
+                                    ${student.status !== "Confirmed" || !isCheckInOpen(student) ? "disabled" : ""}
+                                    title="${!isCheckInOpen(student) ? `Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.` : ""}"
+                                    aria-label="Mark present ${escapeHTML(student.name)}">
+                                    <span aria-hidden="true">●</span>Not Checked In
+                                </button>`}
                             ${student.checkedAt ? `<span class="checked-at">${escapeHTML(student.checkedAt)}</span>` : ""}
                             <span class="row-chevron" aria-hidden="true">›</span>
                         </article>`;
@@ -495,7 +503,7 @@ document.addEventListener("click", async (event) => {
             Object.assign(student, await api.update(`appointments/${student.id}`, {
                 checkedIn: !student.checked,
                 checkedAt: !student.checked
-                    ? new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+                ? new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })
                     : ""
             }));
         } catch (error) {
@@ -509,9 +517,17 @@ document.addEventListener("click", async (event) => {
 });
 $("#studentSearch").addEventListener("input", renderAppointments);
 
+setInterval(() => {
+    if (!document.hidden && facultyId) refreshFacultyAppointments();
+}, 60_000);
+
 async function initializeFacultyPage() {
     try {
-        const user = await api.get("auth/me");
+        const [user, policy] = await Promise.all([
+            api.get("auth/me"),
+            api.get("policies")
+        ]);
+        checkinWindow = Number(policy?.checkinWindow ?? 20);
         if (user.role !== "Faculty" || !user.facultyId) {
             throw new Error("An active faculty profile is required to view this dashboard.");
         }

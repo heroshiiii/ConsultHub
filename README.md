@@ -61,10 +61,15 @@ The landing page accepts any valid email address in the MongoDB `users` collecti
    - `BREVO_API_KEY` — your Brevo API key.
    - `BREVO_SENDER_EMAIL` — the verified sender address.
    - `BREVO_SENDER_NAME` — optional; defaults to `ConsultHub`.
+   - `CRON_SECRET` — a long random secret used to authorize scheduled appointment maintenance.
 4. Deploy or redeploy the project. Vercel provides a public URL; `PORT` is not needed there. Do not copy `.env` into the repository or paste its contents into chat.
 5. Open the Vercel URL and check `/api/health`; it should return `{"status":"ok"}`. Production OTP delivery requires both Brevo settings above.
 
-Login sessions and OTP challenges are stored in MongoDB so Vercel function instances can share authentication state. The app creates `login_sessions` and `otp_challenges` collections as needed and expires records automatically. API routes do not yet enforce role-based permissions, so do not rely on this demo for real users without reviewing its authorization rules.
+Login sessions and OTP challenges are stored in MongoDB so Vercel function instances can share authentication state. The app creates `login_sessions`, `otp_challenges`, and `appointment_history` collections as needed and expires session/OTP records automatically. API routes do not yet enforce role-based permissions, so do not rely on this demo for real users without reviewing its authorization rules.
+
+Appointment check-in opens for the policy-configured window (20 minutes by default) before the scheduled start and closes 10 minutes before the scheduled end. A successful check-in cannot be undone. Appointments not checked in by the cutoff are automatically marked as no-shows; checked-in appointments are marked completed after their scheduled end when automatic completion is enabled. Finalized records are copied to the `appointment_history` collection and included in appointment, history, and dashboard data.
+
+Appointment maintenance runs on API requests and through the Vercel Cron configured in `vercel.json`. Keep `CRON_SECRET` set in Vercel. Vercel Hobby cron jobs run only once per day with up to 59 minutes of scheduling delay; while a student or faculty dashboard is open, it refreshes appointments every minute and applies any due status changes. Minute-precise background processing when nobody is using the app requires a plan or scheduler that supports minute-level cron; on such a plan, change the cron schedule in `vercel.json` to `* * * * *` and redeploy. Check-in dates and times are interpreted in Asia/Manila time.
 
 ### Configure real OTP email delivery (optional)
 

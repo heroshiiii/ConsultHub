@@ -4,6 +4,7 @@ const path = require("node:path");
 const { createHash, randomBytes, randomInt, timingSafeEqual } = require("node:crypto");
 const express = require("express");
 const mongoose = require("mongoose");
+const appointmentTime = require("./public/appointment-time");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -25,6 +26,7 @@ const sessionCookie = "consulthub_session";
 const otpLifetimeMs = 5 * 60 * 1000;
 const otpResendDelayMs = 30 * 1000;
 const otpMaxAttempts = 5;
+const checkinCloseMinutes = 10;
 let databaseInitialization;
 
 if (!mongoUri) {
@@ -32,18 +34,40 @@ if (!mongoUri) {
 }
 
 app.use(express.json({ limit: "100kb" }));
-app.use((_request, _response, next) => {
-    ensureDatabaseInitialized().then(() => next()).catch(next);
+app.use((request, _response, next) => {
+    ensureDatabaseInitialized()
+        .then(() => request.path.startsWith("/api/") &&
+            request.path !== "/api/health" &&
+            request.path !== "/api/cron/appointment-maintenance"
+            ? processAppointmentStatuses()
+            : undefined)
+        .then(() => next())
+        .catch(next);
 });
 
 function ensureDatabaseInitialized() {
     if (!databaseInitialization) {
         databaseInitialization = mongoose.connect(mongoUri)
+            .then(async () => {
+                const historyCollections = await mongoose.connection.db
+                    .listCollections({ name: "appointment_history" }, { nameOnly: true })
+                    .toArray();
+                if (!historyCollections.length) {
+                    try {
+                        await AppointmentHistory.createCollection();
+                    } catch (error) {
+                        if (error.codeName !== "NamespaceExists") throw error;
+                    }
+                }
+            })
             .then(migrateLegacyAccounts)
             .then(seedIfEmpty)
             .then(migrateLegacySlots)
             .then(migrateSlotLocations)
             .then(migrateLegacyAppointments)
+            .then(async () => archiveAppointments(await Consultation.find({
+                status: { $in: ["completed", "no-show", "cancelled"] }
+            })))
             .catch((error) => {
                 databaseInitialization = undefined;
                 throw error;
@@ -150,6 +174,7 @@ const Consultation = mongoose.model("Consultation", consultationSchema, "appoint
 const Policy = mongoose.model("Policy", policySchema);
 const LoginSession = mongoose.model("LoginSession", sessionSchema, "login_sessions");
 const OtpChallenge = mongoose.model("OtpChallenge", otpChallengeSchema, "otp_challenges");
+const AppointmentHistory = mongoose.model("AppointmentHistory", consultationSchema, "appointment_history");
 
 function normalizeRole(role) {
     const roles = {
@@ -481,6 +506,7 @@ app.use(async (request, response, next) => {
         "/api/auth/logout"
     ]);
     const isPublicApi = request.path === "/api/health" ||
+        (request.path === "/api/cron/appointment-maintenance" && request.method === "GET") ||
         (publicAuthRoutes.has(request.path) && request.method === "POST");
 
     if (!pageRole && (!isApiRequest || isPublicApi)) return next();
@@ -594,6 +620,85 @@ function timeInMinutes(value) {
     return hours * 60 + minutes;
 }
 
+function appointmentTimeRange(date, timeSlot) {
+    return appointmentTime.range(normalizeLegacyDate(date), timeSlot);
+}
+
+async function getCheckInWindow(appointment) {
+    const timeRange = appointmentTimeRange(appointment.date, appointment.timeSlot || appointment.time);
+    if (timeRange === null) return null;
+    const policy = await Policy.findOne({ key: "default" }).select("checkinWindow").lean();
+    const minutes = policy?.checkinWindow ?? 20;
+    return {
+        ...timeRange,
+        opensAt: timeRange.startsAt - minutes * 60 * 1000,
+        closesAt: timeRange.endsAt - checkinCloseMinutes * 60 * 1000,
+        minutes
+    };
+}
+
+function manilaDate(now = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+async function archiveAppointments(appointments) {
+    const finalized = appointments.filter((appointment) =>
+        ["completed", "no-show", "cancelled"].includes(appointment.status)
+    );
+    if (!finalized.length) return;
+
+    await AppointmentHistory.bulkWrite(finalized.map((appointment) => {
+        const record = appointment.toObject ? appointment.toObject() : { ...appointment };
+        delete record.__v;
+        return {
+            replaceOne: {
+                filter: { _id: record._id },
+                replacement: record,
+                upsert: true
+            }
+        };
+    }), { ordered: false });
+}
+
+async function processAppointmentStatuses(now = Date.now()) {
+    const policy = await Policy.findOne({ key: "default" }).lean();
+    const candidates = await Consultation.find({
+        status: "upcoming",
+        date: { $lte: manilaDate(new Date(now)) }
+    });
+    const finalized = [];
+
+    for (const appointment of candidates) {
+        const timeRange = appointmentTimeRange(appointment.date, appointment.timeSlot);
+        if (!timeRange) continue;
+
+        let nextStatus = null;
+        if (appointment.checkedIn && policy?.automaticCompletion !== false && now >= timeRange.endsAt) {
+            nextStatus = "completed";
+        } else if (!appointment.checkedIn && policy?.automaticNoShow !== false &&
+            now >= timeRange.endsAt - checkinCloseMinutes * 60 * 1000) {
+            nextStatus = "no-show";
+        }
+        if (!nextStatus) continue;
+
+        const updated = await Consultation.findOneAndUpdate(
+            { _id: appointment._id, status: "upcoming", checkedIn: Boolean(appointment.checkedIn) },
+            { $set: { status: nextStatus } },
+            { new: true, runValidators: true }
+        );
+        if (updated) finalized.push(updated);
+    }
+    await archiveAppointments(finalized);
+    return { finalized: finalized.length };
+}
+
 function registerReadRoutes(resource, model, options = {}) {
     app.get(`/api/${resource}`, asyncRoute(async (request, response) => {
         const filters = options.filters
@@ -636,8 +741,20 @@ async function listAppointments(request, response) {
         filter = { $or: [{ facultyId: faculty.id }, { facultyName: faculty.name }] };
     }
 
-    const appointments = await Consultation.find(filter).sort({ date: -1, createdAt: -1 });
-    response.json(appointments.map(serializeAppointment));
+    const [appointments, history] = await Promise.all([
+        Consultation.find(filter).sort({ date: -1, createdAt: -1 }),
+        AppointmentHistory.find(filter).sort({ date: -1, createdAt: -1 })
+    ]);
+    const byId = new Map(appointments.map((appointment) => [
+        String(appointment._id),
+        serializeAppointment(appointment)
+    ]));
+    for (const appointment of history) {
+        byId.set(String(appointment._id), serializeAppointment(appointment));
+    }
+    response.json([...byId.values()].sort((a, b) =>
+        b.date.localeCompare(a.date) || String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+    ));
 }
 
 app.get("/api/appointments", asyncRoute(listAppointments));
@@ -1107,12 +1224,51 @@ const createAppointment = asyncRoute(async (request, response) => {
 app.post(["/api/appointments", "/api/consultations"], createAppointment);
 
 const updateAppointment = asyncRoute(async (request, response) => {
-    const consultation = await Consultation.findByIdAndUpdate(request.params.id, request.body, { new: true, runValidators: true });
+    const consultation = await Consultation.findById(request.params.id);
     if (!consultation) return response.status(404).json({ error: "Consultation not found." });
+
+    if (request.body.checkedIn === true && !consultation.checkedIn) {
+        const window = await getCheckInWindow(consultation);
+        if (!window) {
+            return response.status(400).json({ error: "This appointment has an invalid date or start time." });
+        }
+        const now = Date.now();
+        if (consultation.status !== "upcoming" || now < window.opensAt || now >= window.closesAt) {
+            return response.status(409).json({
+                error: now < window.opensAt
+                    ? `Check-in opens ${window.minutes} minutes before the appointment.`
+                    : `Check-in closes ${checkinCloseMinutes} minutes before the appointment ends.`
+            });
+        }
+    }
+    if (request.body.checkedIn === false && consultation.checkedIn) {
+        return response.status(409).json({ error: "This student has already checked in; check-in cannot be undone." });
+    }
+
+    Object.assign(consultation, request.body);
+    if (request.body.checkedIn === true && !consultation.checkedAt) {
+        consultation.checkedAt = new Intl.DateTimeFormat("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "Asia/Manila"
+        }).format(new Date());
+    }
+    await consultation.save();
+    await archiveAppointments([consultation]);
     response.json(serializeAppointment(consultation));
 });
 
 app.patch(["/api/appointments/:id", "/api/consultations/:id"], updateAppointment);
+
+app.get("/api/cron/appointment-maintenance", asyncRoute(async (request, response) => {
+    const secret = process.env.CRON_SECRET;
+    const expected = secret ? Buffer.from(`Bearer ${secret}`) : Buffer.alloc(0);
+    const provided = Buffer.from(request.get("authorization") || "");
+    if (!expected.length || expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+        return response.status(401).json({ error: "Unauthorized cron request." });
+    }
+    response.json(await processAppointmentStatuses());
+}));
 
 app.put("/api/policies", asyncRoute(async (request, response) => {
     const policy = await Policy.findOneAndUpdate(

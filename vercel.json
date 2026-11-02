@@ -4,5 +4,11 @@
     "server.js": {
       "includeFiles": "*.html"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/appointment-maintenance",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }

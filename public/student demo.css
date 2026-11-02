@@ -1046,6 +1046,19 @@ input, select {
     background: #174fd2;
 }
 
+.primary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.checked-in-label {
+    display: block;
+    padding: 11px;
+    background: #e8f7ef;
+    color: #087c50;
+    text-align: center;
+}
+
 .filters {
     display: flex;
     flex-wrap: wrap;

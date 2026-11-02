@@ -6,6 +6,7 @@ let appointments = [];
 let facultyMembers = [];
 let consultationSlots = [];
 let currentStudent = null;
+let checkinWindow = 20;
 
 let activeFilter = "all";
 let activeHistoryFilter = "all";
@@ -44,6 +45,10 @@ function shortDate(date) {
         month: "long",
         day: "numeric"
     });
+}
+
+function isCheckInOpen(item) {
+    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, 10);
 }
 
 function badge(status) {
@@ -322,7 +327,7 @@ $$("[data-filter]").forEach((button) => {
 function renderHistory() {
     const search = $("#historySearch").value.trim().toLowerCase();
     const history = appointments.filter((item) =>
-        item.status === "Completed" || item.status === "No Show"
+        ["Completed", "No Show", "Cancelled"].includes(item.status)
     );
     const list = history
         .filter((item) => activeHistoryFilter === "all" || item.status === activeHistoryFilter)
@@ -539,11 +544,16 @@ document.addEventListener("click", (event) => {
         </div>
 
         <div class="details-actions">
-            ${item.status === "Confirmed" ? `
-                <button class="primary-button" data-checkin="${item.id}">
-                    Check In
-                </button>
-            ` : ""}
+            ${item.status === "Confirmed" && item.checkedIn
+                ? `<span class="primary-button checked-in-label" aria-label="Already checked in">Already Checked In</span>`
+                : item.status === "Confirmed" ? `
+                    <button class="primary-button" data-checkin="${item.id}" ${!isCheckInOpen(item) ? "disabled" : ""}>
+                        Check In
+                    </button>
+                    <small data-checkin-availability ${isCheckInOpen(item) ? "hidden" : ""}>
+                        Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.
+                    </small>
+                ` : ""}
             <button class="small-button" id="closeDetails">Close</button>
         </div>
     `);
@@ -561,13 +571,9 @@ document.addEventListener("click", async (event) => {
 
     if (!item) return;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const appointmentDate = new Date(item.date + "T12:00:00");
-
-    if (appointmentDate > today) {
-        showToast("Check-in is available on the appointment date.");
+    if (item.checkedIn) return;
+    if (!isCheckInOpen(item)) {
+        showToast(`Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.`);
         return;
     }
 
@@ -581,6 +587,28 @@ document.addEventListener("click", async (event) => {
         showToast(error.message);
     }
 });
+
+setInterval(() => {
+    const button = $("[data-checkin]");
+    if (!button) return;
+    const item = appointments.find((appointment) => String(appointment.id) === button.dataset.checkin);
+    if (!item) return;
+    button.disabled = item.checkedIn || !isCheckInOpen(item);
+    const hint = $("[data-checkin-availability]");
+    if (hint) hint.hidden = item.checkedIn || isCheckInOpen(item);
+}, 15_000);
+
+setInterval(async () => {
+    if (document.hidden || !currentStudent) return;
+    try {
+        appointments = await api.get("appointments");
+        renderDashboard();
+        renderAppointments();
+        renderHistory();
+    } catch (error) {
+        showToast(`Could not refresh appointments: ${error.message}`);
+    }
+}, 60_000);
 
 
 // INITIALIZE
@@ -596,11 +624,13 @@ async function initializeStudentPage() {
         $("#studentNameDisplay").textContent = studentName;
         $("#studentAvatar").textContent = initials(studentName);
         $("#studentGreeting").textContent = `Welcome, ${firstName}`;
-        const [facultyData, slotData, appointmentData] = await Promise.all([
+        const [facultyData, slotData, appointmentData, policy] = await Promise.all([
             api.get("faculty"),
             api.get("slots"),
-            api.get("appointments")
+            api.get("appointments"),
+            api.get("policies")
         ]);
+        checkinWindow = Number(policy?.checkinWindow ?? 20);
         consultationSlots = slotData;
         facultyMembers = facultyData.map((faculty) => ({
             ...faculty,
