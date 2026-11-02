@@ -21,12 +21,10 @@ const demoAccountEmails = new Set([
     "joel.reyes@example.com",
     "admin@example.com"
 ]);
-const sessions = new Map();
 const sessionCookie = "consulthub_session";
 const otpLifetimeMs = 5 * 60 * 1000;
 const otpResendDelayMs = 30 * 1000;
 const otpMaxAttempts = 5;
-const otpChallenges = new Map();
 let databaseInitialization;
 
 if (!mongoUri) {
@@ -129,12 +127,29 @@ const policySchema = new mongoose.Schema({
     automaticCompletion: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const sessionSchema = new mongoose.Schema({
+    _id: String,
+    email: { type: String, required: true },
+    expiresAt: { type: Date, required: true, expires: 0 }
+}, { versionKey: false });
+
+const otpChallengeSchema = new mongoose.Schema({
+    _id: String,
+    salt: { type: String, required: true },
+    codeHash: { type: Buffer, required: true },
+    expiresAt: { type: Date, required: true, expires: 0 },
+    sentAt: { type: Date, required: true },
+    attempts: { type: Number, required: true, default: 0 }
+}, { versionKey: false });
+
 const Account = mongoose.model("Account", accountSchema, "users");
 const Faculty = mongoose.model("Faculty", facultySchema);
 const Student = mongoose.model("Student", studentSchema);
 const Slot = mongoose.model("Slot", slotSchema);
 const Consultation = mongoose.model("Consultation", consultationSchema, "appointments");
 const Policy = mongoose.model("Policy", policySchema);
+const LoginSession = mongoose.model("LoginSession", sessionSchema, "login_sessions");
+const OtpChallenge = mongoose.model("OtpChallenge", otpChallengeSchema, "otp_challenges");
 
 function normalizeRole(role) {
     const roles = {
@@ -225,10 +240,14 @@ async function findUserProfile(email) {
 
 async function currentUser(request) {
     const token = readCookie(request, sessionCookie);
-    const session = token ? sessions.get(token) : null;
-    return session && session.expiresAt > Date.now()
+    const session = token ? await LoginSession.findById(hashSessionToken(token)).lean() : null;
+    return session && session.expiresAt > new Date()
         ? findUserProfile(session.email)
         : null;
+}
+
+function hashSessionToken(token) {
+    return createHash("sha256").update(token).digest("hex");
 }
 
 async function upsertUserForProfile({ name, email, role }) {
@@ -466,19 +485,20 @@ app.use(async (request, response, next) => {
 
     if (!pageRole && (!isApiRequest || isPublicApi)) return next();
 
-    const token = readCookie(request, sessionCookie);
-    const session = token ? sessions.get(token) : null;
-    if (!session || session.expiresAt <= Date.now()) {
-        if (token) sessions.delete(token);
-        clearSessionCookie(response);
-        if (isApiRequest) return response.status(401).json({ error: "Please log in with an active account." });
-        return response.redirect(302, "/landing%20page.html");
-    }
-
     try {
+        const token = readCookie(request, sessionCookie);
+        const tokenHash = token ? hashSessionToken(token) : null;
+        const session = tokenHash ? await LoginSession.findById(tokenHash).lean() : null;
+        if (!session || session.expiresAt <= new Date()) {
+            if (tokenHash) await LoginSession.deleteOne({ _id: tokenHash });
+            clearSessionCookie(response);
+            if (isApiRequest) return response.status(401).json({ error: "Please log in with an active account." });
+            return response.redirect(302, "/landing%20page.html");
+        }
+
         const account = await findActiveLoginAccount(session.email);
         if (!account) {
-            sessions.delete(token);
+            await LoginSession.deleteOne({ _id: tokenHash });
             clearSessionCookie(response);
             if (isApiRequest) return response.status(401).json({ error: "This account is inactive. Please contact an administrator." });
             return response.redirect(302, "/landing%20page.html");
@@ -652,12 +672,12 @@ app.post("/api/auth/request-otp", requireFields(["email"]), asyncRoute(async (re
         return response.status(404).json({ error: "This email is not registered to an active account." });
     }
 
-    const previous = otpChallenges.get(email);
+    const previous = await OtpChallenge.findById(email).lean();
     const now = Date.now();
-    if (previous && now - previous.sentAt < otpResendDelayMs) {
+    if (previous && now - previous.sentAt.getTime() < otpResendDelayMs) {
         return response.status(429).json({
             error: "Please wait before requesting another code.",
-            retryAfter: Math.ceil((otpResendDelayMs - (now - previous.sentAt)) / 1000)
+            retryAfter: Math.ceil((otpResendDelayMs - (now - previous.sentAt.getTime())) / 1000)
         });
     }
 
@@ -666,13 +686,14 @@ app.post("/api/auth/request-otp", requireFields(["email"]), asyncRoute(async (re
     const code = demoMode ? "123456" : String(randomInt(0, 1000000)).padStart(6, "0");
     const delivery = await sendOtpEmail(email, code);
     const salt = randomBytes(16).toString("hex");
-    otpChallenges.set(email, {
+    await OtpChallenge.findByIdAndUpdate(email, {
+        _id: email,
         salt,
         codeHash: hashOtp(email, salt, code),
-        expiresAt: now + otpLifetimeMs,
-        sentAt: now,
+        expiresAt: new Date(now + otpLifetimeMs),
+        sentAt: new Date(now),
         attempts: 0
-    });
+    }, { upsert: true, new: true, runValidators: true });
     response.json({
         sent: true,
         demoMode: delivery === "demo",
@@ -689,20 +710,24 @@ app.post("/api/auth/verify-otp", requireFields(["email", "code"]), asyncRoute(as
         return response.status(400).json({ error: "Enter the 6-digit verification code." });
     }
 
-    const challenge = otpChallenges.get(email);
-    if (!challenge || challenge.expiresAt <= Date.now()) {
-        otpChallenges.delete(email);
+    const challenge = await OtpChallenge.findById(email);
+    if (!challenge || challenge.expiresAt <= new Date()) {
+        if (challenge) await challenge.deleteOne();
         return response.status(400).json({ error: "This code has expired. Request a new one to continue." });
     }
     if (challenge.attempts >= otpMaxAttempts) {
-        otpChallenges.delete(email);
+        await challenge.deleteOne();
         return response.status(429).json({ error: "Too many incorrect attempts. Request a new code to continue." });
     }
 
     const submittedHash = hashOtp(email, challenge.salt, code);
     if (!timingSafeEqual(submittedHash, challenge.codeHash)) {
         challenge.attempts += 1;
-        if (challenge.attempts >= otpMaxAttempts) otpChallenges.delete(email);
+        if (challenge.attempts >= otpMaxAttempts) {
+            await challenge.deleteOne();
+        } else {
+            await challenge.save();
+        }
         return response.status(400).json({
             error: challenge.attempts >= otpMaxAttempts
                 ? "Too many incorrect attempts. Request a new code to continue."
@@ -712,14 +737,18 @@ app.post("/api/auth/verify-otp", requireFields(["email", "code"]), asyncRoute(as
     }
 
     const account = await findActiveLoginAccount(email);
-    otpChallenges.delete(email);
+    await challenge.deleteOne();
     if (!account) {
         return response.status(404).json({ error: "This email is not registered to an active account." });
     }
 
     const token = randomBytes(32).toString("hex");
     const expiresAt = Date.now() + sessionLifetimeMs;
-    sessions.set(token, { email: account.email, expiresAt });
+    await LoginSession.create({
+        _id: hashSessionToken(token),
+        email: account.email,
+        expiresAt: new Date(expiresAt)
+    });
     response.cookie(sessionCookie, token, {
         httpOnly: true,
         sameSite: "lax",
@@ -730,12 +759,12 @@ app.post("/api/auth/verify-otp", requireFields(["email", "code"]), asyncRoute(as
     response.json({ valid: true, role: account.role, redirect: dashboardForRole(account.role) });
 }));
 
-app.post("/api/auth/logout", (request, response) => {
+app.post("/api/auth/logout", asyncRoute(async (request, response) => {
     const token = readCookie(request, sessionCookie);
-    if (token) sessions.delete(token);
+    if (token) await LoginSession.deleteOne({ _id: hashSessionToken(token) });
     clearSessionCookie(response);
     response.status(204).end();
-});
+}));
 
 app.post("/api/accounts", requireFields(["name", "email", "role"]), asyncRoute(async (request, response) => {
     const name = String(request.body.name).trim();
@@ -1098,14 +1127,14 @@ app.get("/api/health", (_request, response) => {
     response.json({ status: mongoose.connection.readyState === 1 ? "ok" : "disconnected" });
 });
 
-app.get(["/", "/index.html"], (request, response) => {
+app.get(["/", "/index.html"], asyncRoute(async (request, response) => {
     if (request.query.logout === "1") {
         const token = readCookie(request, sessionCookie);
-        if (token) sessions.delete(token);
+        if (token) await LoginSession.deleteOne({ _id: hashSessionToken(token) });
         clearSessionCookie(response);
     }
     response.redirect(302, "/landing%20page.html");
-});
+}));
 
 app.get("/landing%20page.html", (_request, response) => {
     response.sendFile(path.join(__dirname, "landing page.html"));

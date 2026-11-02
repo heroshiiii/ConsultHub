@@ -64,7 +64,7 @@ The landing page accepts any valid email address in the MongoDB `users` collecti
 4. Deploy or redeploy the project. Vercel provides a public URL; `PORT` is not needed there. Do not copy `.env` into the repository or paste its contents into chat.
 5. Open the Vercel URL and check `/api/health`; it should return `{"status":"ok"}`. Production OTP delivery requires both Brevo settings above.
 
-The app currently stores login sessions and OTP challenges in process memory. Vercel can run multiple function instances, so authentication state may not be shared reliably between requests. Use shared persistent session storage before relying on this deployment for real users.
+Login sessions and OTP challenges are stored in MongoDB so Vercel function instances can share authentication state. The app creates `login_sessions` and `otp_challenges` collections as needed and expires records automatically. API routes do not yet enforce role-based permissions, so do not rely on this demo for real users without reviewing its authorization rules.
 
 ### Configure real OTP email delivery (optional)
 
