@@ -52,6 +52,20 @@ The app's root address redirects to the landing page. The same Node.js server se
 
 The landing page accepts any valid email address in the MongoDB `users` collection when `isActive` is `true` or `status` is `active`. Emails are matched without case sensitivity. The admin account page also reads and writes this same `users` collection; account records use `fullName`, `email`, `role`, and `isActive`. It does not require a particular school or email domain. The app then sends a one-time verification code. In development without email settings, use the clearly labeled demo code `123456`. Keep the PowerShell window running while you use the site. To stop the server, focus that window and press **Ctrl+C**.
 
+## Deploy to Vercel
+
+1. Push this project to a GitHub repository and import that repository from the Vercel dashboard. Keep the project root set to the folder containing `server.js` and `package.json`; Vercel detects the Express app automatically.
+2. Create a MongoDB Atlas database if you do not already have a hosted database. In Atlas, configure a database user and network access so Vercel can connect. Vercel's outbound IPs may vary; prefer a fixed egress option when available rather than allowing every IP.
+3. In the Vercel project's **Settings → Environment Variables**, add:
+   - `MONGODB_URI` — the Atlas connection string, including the database name.
+   - `BREVO_API_KEY` — your Brevo API key.
+   - `BREVO_SENDER_EMAIL` — the verified sender address.
+   - `BREVO_SENDER_NAME` — optional; defaults to `ConsultHub`.
+4. Deploy or redeploy the project. Vercel provides a public URL; `PORT` is not needed there. Do not copy `.env` into the repository or paste its contents into chat.
+5. Open the Vercel URL and check `/api/health`; it should return `{"status":"ok"}`. Production OTP delivery requires both Brevo settings above.
+
+The app currently stores login sessions and OTP challenges in process memory. Vercel can run multiple function instances, so authentication state may not be shared reliably between requests. Use shared persistent session storage before relying on this deployment for real users.
+
 ### Configure real OTP email delivery (optional)
 
 The sample project can send codes through Brevo. Create a Brevo API key and verify a sender email address in Brevo, then add these values to `.env`:

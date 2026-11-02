@@ -27,12 +27,32 @@ const otpLifetimeMs = 5 * 60 * 1000;
 const otpResendDelayMs = 30 * 1000;
 const otpMaxAttempts = 5;
 const otpChallenges = new Map();
+let databaseInitialization;
 
 if (!mongoUri) {
     throw new Error("MONGODB_URI is required. Copy .env.example to .env and configure MongoDB.");
 }
 
 app.use(express.json({ limit: "100kb" }));
+app.use((_request, _response, next) => {
+    ensureDatabaseInitialized().then(() => next()).catch(next);
+});
+
+function ensureDatabaseInitialized() {
+    if (!databaseInitialization) {
+        databaseInitialization = mongoose.connect(mongoUri)
+            .then(migrateLegacyAccounts)
+            .then(seedIfEmpty)
+            .then(migrateLegacySlots)
+            .then(migrateSlotLocations)
+            .then(migrateLegacyAppointments)
+            .catch((error) => {
+                databaseInitialization = undefined;
+                throw error;
+            });
+    }
+    return databaseInitialization;
+}
 
 const accountSchema = new mongoose.Schema({
     fullName: { type: String, required: true, trim: true },
@@ -1087,7 +1107,20 @@ app.get(["/", "/index.html"], (request, response) => {
     response.redirect(302, "/landing%20page.html");
 });
 
-app.use(express.static(path.join(__dirname)));
+app.get("/landing%20page.html", (_request, response) => {
+    response.sendFile(path.join(__dirname, "landing page.html"));
+});
+app.get("/student%20demo.html", (_request, response) => {
+    response.sendFile(path.join(__dirname, "student demo.html"));
+});
+app.get("/faculty%20demo.html", (_request, response) => {
+    response.sendFile(path.join(__dirname, "faculty demo.html"));
+});
+app.get("/admin%20demo.html", (_request, response) => {
+    response.sendFile(path.join(__dirname, "admin demo.html"));
+});
+
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use((error, _request, response, _next) => {
     if (error instanceof mongoose.Error.ValidationError || error instanceof mongoose.Error.CastError) {
@@ -1107,14 +1140,13 @@ async function seedIfEmpty() {
     if (await Policy.countDocuments() === 0) await Policy.create({ key: "default" });
 }
 
-mongoose.connect(mongoUri)
-    .then(migrateLegacyAccounts)
-    .then(seedIfEmpty)
-    .then(migrateLegacySlots)
-    .then(migrateSlotLocations)
-    .then(migrateLegacyAppointments)
-    .then(() => app.listen(port, () => console.log(`ConsultHub is available at http://localhost:${port}`)))
-    .catch((error) => {
-        console.error("Unable to connect to MongoDB:", error.message);
-        process.exitCode = 1;
-    });
+if (require.main === module) {
+    ensureDatabaseInitialized()
+        .then(() => app.listen(port, () => console.log(`ConsultHub is available at http://localhost:${port}`)))
+        .catch((error) => {
+            console.error("Unable to connect to MongoDB:", error.message);
+            process.exitCode = 1;
+        });
+}
+
+module.exports = app;
