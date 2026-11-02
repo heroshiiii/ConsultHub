@@ -66,7 +66,7 @@ function ensureDatabaseInitialized() {
             .then(migrateSlotLocations)
             .then(migrateLegacyAppointments)
             .then(async () => archiveAppointments(await Consultation.find({
-                status: { $in: ["completed", "no-show", "cancelled"] }
+                status: /^(completed|complete|no[\s_-]?show|cancelled)$/i
             })))
             .catch((error) => {
                 databaseInitialization = undefined;
@@ -549,16 +549,19 @@ function serializeAppointment(document) {
         upcoming: "Confirmed",
         confirmed: "Confirmed",
         completed: "Completed",
+        complete: "Completed",
         "no-show": "No Show",
         "no show": "No Show",
+        "no_show": "No Show",
         cancelled: "Cancelled"
     };
+    const normalizedStatus = String(value.status || "").trim().toLowerCase();
     return {
         ...value,
         student: value.studentName || value.student || "",
         faculty: value.facultyName || value.faculty || "",
         time: value.timeSlot || value.time || "",
-        status: statuses[String(value.status || "").toLowerCase()] || value.status || "Confirmed",
+        status: statuses[normalizedStatus] || value.status || "Confirmed",
         id: String(value._id || value.id),
         _id: undefined,
         __v: undefined
@@ -650,12 +653,15 @@ function manilaDate(now = new Date()) {
 
 async function archiveAppointments(appointments) {
     const finalized = appointments.filter((appointment) =>
-        ["completed", "no-show", "cancelled"].includes(appointment.status)
+        ["completed", "complete", "no-show", "no show", "no_show", "cancelled"]
+            .includes(String(appointment.status || "").trim().toLowerCase())
     );
     if (!finalized.length) return;
 
     await AppointmentHistory.bulkWrite(finalized.map((appointment) => {
         const record = appointment.toObject ? appointment.toObject() : { ...appointment };
+        record.status = String(record.status || "").trim().toLowerCase().replace(/[\s_]+/g, "-");
+        if (record.status === "complete") record.status = "completed";
         delete record.__v;
         return {
             replaceOne: {
@@ -727,12 +733,14 @@ async function listAppointments(request, response) {
     let filter = {};
     if (user.role === "Student") {
         const escapedEmail = user.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escapedName = user.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         filter = {
             $or: [
                 { studentEmail: new RegExp(`^${escapedEmail}$`, "i") },
                 { studentNumber: user.studentNumber },
                 { studentId: user.studentNumber },
-                { student: user.name }
+                { student: new RegExp(`^${escapedName}$`, "i") },
+                { studentName: new RegExp(`^${escapedName}$`, "i") }
             ]
         };
     } else if (user.role === "Faculty") {
