@@ -733,15 +733,18 @@ async function listAppointments(request, response) {
     let filter = {};
     if (user.role === "Student") {
         const escapedEmail = user.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const escapedName = user.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const studentIdentifiers = [
+            { studentEmail: new RegExp(`^${escapedEmail}$`, "i") }
+        ];
+        const studentNumber = String(user.studentNumber || "").trim();
+        if (studentNumber && studentNumber.toLowerCase() !== user.email.toLowerCase()) {
+            studentIdentifiers.push(
+                { studentNumber },
+                { studentId: studentNumber }
+            );
+        }
         filter = {
-            $or: [
-                { studentEmail: new RegExp(`^${escapedEmail}$`, "i") },
-                { studentNumber: user.studentNumber },
-                { studentId: user.studentNumber },
-                { student: new RegExp(`^${escapedName}$`, "i") },
-                { studentName: new RegExp(`^${escapedName}$`, "i") }
-            ]
+            $or: studentIdentifiers
         };
     } else if (user.role === "Faculty") {
         const faculty = await Faculty.findOne({ email: user.email }).select("_id");

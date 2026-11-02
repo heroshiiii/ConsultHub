@@ -59,13 +59,24 @@ input {
 }
 
 .brand-icon {
-    width: 34px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
     display: grid;
     place-items: center;
-    border-radius: 11px;
-    background: var(--blue);
-    font-size: 18px;
+    border: 1px solid #ffffff30;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #5688ff, #2053d7 70%, #143da9);
+    box-shadow: 0 8px 22px #2864ed55, inset 0 1px 0 #ffffff45;
+}
+
+.brand-icon svg {
+    width: 33px;
+    height: 33px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
 }
 
 .brand-copy {

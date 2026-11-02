@@ -57,14 +57,25 @@ button, a {
 }
 
 .brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 42px;
+    height: 42px;
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: var(--blue);
+    border: 1px solid #ffffff30;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #5688ff, #2053d7 70%, #143da9);
     color: white;
-    font-size: 18px;
+    box-shadow: 0 6px 16px #2864ed35, inset 0 1px 0 #ffffff45;
+}
+
+.brand-mark svg {
+    width: 29px;
+    height: 29px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
 }
 
 .brand strong,
