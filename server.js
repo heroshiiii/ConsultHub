@@ -651,7 +651,7 @@ function manilaDate(now = new Date()) {
     return `${values.year}-${values.month}-${values.day}`;
 }
 
-async function archiveAppointments(appointments) {
+async function archiveAppointments(appointments, options = {}) {
     const finalized = appointments.filter((appointment) =>
         ["completed", "complete", "no-show", "no show", "no_show", "cancelled"]
             .includes(String(appointment.status || "").trim().toLowerCase())
@@ -670,7 +670,7 @@ async function archiveAppointments(appointments) {
                 upsert: true
             }
         };
-    }), { ordered: false });
+    }), { ordered: false, ...options });
 }
 
 async function processAppointmentStatuses(now = Date.now()) {
@@ -1164,11 +1164,41 @@ app.patch("/api/slots/:id", asyncRoute(async (request, response) => {
 }));
 
 app.delete("/api/slots/:id", asyncRoute(async (request, response) => {
-    const slot = await Slot.findById(request.params.id);
-    if (!slot) return response.status(404).json({ error: "Slot not found." });
-    if (slot.booked > 0) return response.status(409).json({ error: "Slots with existing reservations cannot be deleted." });
-    await slot.deleteOne();
-    response.status(204).end();
+    const user = await currentUser(request);
+    if (!user || user.role !== "Faculty") {
+        return response.status(403).json({ error: "An active faculty account is required to cancel availability." });
+    }
+    const faculty = await Faculty.findOne({ email: user.email }).select("_id");
+    if (!faculty) return response.status(404).json({ error: "Faculty profile not found." });
+
+    const session = await mongoose.startSession();
+    let cancelledCount = 0;
+    try {
+        await session.withTransaction(async () => {
+            const slot = await Slot.findOne({
+                _id: request.params.id,
+                facultyId: faculty._id
+            }).session(session);
+            if (!slot) {
+                throw Object.assign(new Error("Availability slot not found."), { statusCode: 404 });
+            }
+
+            const appointments = await Consultation.find({
+                slotId: String(slot._id),
+                status: "upcoming"
+            }).session(session);
+            for (const appointment of appointments) {
+                appointment.status = "cancelled";
+                await appointment.save({ session });
+            }
+            await archiveAppointments(appointments, { session });
+            cancelledCount = appointments.length;
+            await Slot.deleteOne({ _id: slot._id, facultyId: faculty._id }, { session });
+        });
+    } finally {
+        await session.endSession();
+    }
+    response.json({ cancelled: cancelledCount });
 }));
 
 const createAppointment = asyncRoute(async (request, response) => {
@@ -1187,48 +1217,59 @@ const createAppointment = asyncRoute(async (request, response) => {
 
     const faculty = await Faculty.findById(request.body.facultyId);
     if (!faculty) return response.status(404).json({ error: "Faculty member not found." });
-    const slot = await Slot.findOne({
-        _id: request.body.slotId,
-        facultyId: faculty.id,
-        date: request.body.date
-    });
-    if (!slot) return response.status(404).json({ error: "No availability exists for that date." });
-    const duplicate = await Consultation.exists({
-        slotId: slot.id,
-        studentNumber: user.studentNumber,
-        status: "upcoming"
-    });
-    if (duplicate) return response.status(409).json({ error: "You already have a confirmed consultation in this slot." });
-
-    const reservedSlot = await Slot.findOneAndUpdate(
-        { _id: slot.id, booked: slot.booked, capacity: { $gt: slot.booked } },
-        { $inc: { booked: 1 } },
-        { new: true }
-    );
-    if (!reservedSlot) return response.status(409).json({ error: "This consultation slot is full. Refresh and choose another slot." });
+    const session = await mongoose.startSession();
+    let consultation;
     try {
-        const consultation = await Consultation.create({
-            studentId: user.studentNumber,
-            studentName: user.name,
-            studentEmail: user.email,
-            studentNumber: user.studentNumber,
-            program: user.program,
-            facultyName: faculty.name,
-            college: faculty.college || "",
-            department: faculty.department,
-            location: slot.location,
-            slotId: slot.id,
-            facultyId: faculty.id,
-            date: slot.date,
-            timeSlot: `${slot.start} – ${slot.end}`,
-            reason,
-            status: "upcoming"
+        await session.withTransaction(async () => {
+            const slot = await Slot.findOne({
+                _id: request.body.slotId,
+                facultyId: faculty._id,
+                date: request.body.date
+            }).session(session);
+            if (!slot) {
+                throw Object.assign(new Error("No availability exists for that date."), { statusCode: 404 });
+            }
+            const duplicate = await Consultation.exists({
+                slotId: String(slot._id),
+                studentNumber: user.studentNumber,
+                status: "upcoming"
+            }).session(session);
+            if (duplicate) {
+                throw Object.assign(new Error("You already have a confirmed consultation in this slot."), { statusCode: 409 });
+            }
+
+            const reservedSlot = await Slot.findOneAndUpdate(
+                { _id: slot._id, booked: slot.booked, capacity: { $gt: slot.booked } },
+                { $inc: { booked: 1 } },
+                { new: true, session }
+            );
+            if (!reservedSlot) {
+                throw Object.assign(new Error("This consultation slot is full. Refresh and choose another slot."), { statusCode: 409 });
+            }
+            [consultation] = await Consultation.create([{
+                studentId: user.studentNumber,
+                studentName: user.name,
+                studentEmail: user.email,
+                studentNumber: user.studentNumber,
+                program: user.program,
+                facultyName: faculty.name,
+                college: faculty.college || "",
+                department: faculty.department,
+                location: slot.location,
+                slotId: String(slot._id),
+                facultyId: faculty.id,
+                date: slot.date,
+                timeSlot: `${slot.start} – ${slot.end}`,
+                reason,
+                status: "upcoming"
+            }], { session });
         });
-        response.status(201).json(serializeAppointment(consultation));
     } catch (error) {
-        await Slot.updateOne({ _id: slot.id }, { $inc: { booked: -1 } });
         throw error;
+    } finally {
+        await session.endSession();
     }
+    response.status(201).json(serializeAppointment(consultation));
 });
 
 app.post(["/api/appointments", "/api/consultations"], createAppointment);

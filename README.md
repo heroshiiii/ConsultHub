@@ -69,6 +69,8 @@ Login sessions and OTP challenges are stored in MongoDB so Vercel function insta
 
 Appointment check-in opens for the policy-configured window (20 minutes by default) before the scheduled start and closes 10 minutes before the scheduled end. A successful check-in cannot be undone. Appointments not checked in by the cutoff are automatically marked as no-shows; checked-in appointments are marked completed after their scheduled end when automatic completion is enabled. Finalized records are copied to the `appointment_history` collection and included in appointment, history, and dashboard data.
 
+Faculty can cancel an availability slot even when students have reserved it. The app cancels those appointments, archives them for the students' history, and removes the slot. Slot cancellation and new bookings use MongoDB transactions so they cannot race each other.
+
 Appointment maintenance runs on API requests and through the Vercel Cron configured in `vercel.json`. Keep `CRON_SECRET` set in Vercel. Vercel Hobby cron jobs run only once per day with up to 59 minutes of scheduling delay; while a student or faculty dashboard is open, it refreshes appointments every minute and applies any due status changes. Minute-precise background processing when nobody is using the app requires a plan or scheduler that supports minute-level cron; on such a plan, change the cron schedule in `vercel.json` to `* * * * *` and redeploy. Check-in dates and times are interpreted in Asia/Manila time.
 
 ### Configure real OTP email delivery (optional)

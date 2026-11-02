@@ -174,7 +174,8 @@ function renderAvailability() {
                         <button class="slot-action edit" type="button" data-edit-slot="${slot.id}"
                             aria-label="Edit slot on ${escapeHTML(slotDateLabel(slot.date))}">✎</button>
                         <button class="slot-action delete" type="button" data-delete-slot="${slot.id}"
-                            aria-label="Delete slot on ${escapeHTML(slotDateLabel(slot.date))}">⌫</button>
+                            aria-label="Cancel slot on ${escapeHTML(slotDateLabel(slot.date))}"
+                            title="Cancel slot and notify reserved students">×</button>
                     </div>
                 </div>
                 <div class="availability-progress-row">
@@ -479,20 +480,28 @@ document.addEventListener("click", async (event) => {
     if (deleteButton) {
         const slot = slots.find((item) => item.id === deleteButton.dataset.deleteSlot);
         if (!slot) return;
-        if (slot.booked > 0) {
-            showToast("Slots with existing reservations cannot be deleted.");
-            return;
-        }
+        const reservationMessage = slot.booked > 0
+            ? `${slot.booked} student reservation${slot.booked === 1 ? "" : "s"} will be cancelled and shown in those students' history.`
+            : "This availability will be removed.";
+        if (!window.confirm(`Cancel ${slotDateLabel(slot.date)} at ${slot.start}–${slot.end}?\n\n${reservationMessage}`)) return;
         try {
-            await api.remove(`slots/${slot.id}`);
+            const result = await api.remove(`slots/${slot.id}`);
             slots = slots.filter((item) => item.id !== slot.id);
+            appointments = appointments.map((appointment) =>
+                appointment.slotId === slot.id && appointment.status === "Confirmed"
+                    ? { ...appointment, status: "Cancelled" }
+                    : appointment
+            );
+            renderAppointments();
         } catch (error) {
             showToast(error.message);
             return;
         }
         renderAvailability();
         renderDashboard();
-        showToast("Availability slot deleted.");
+        showToast(result.cancelled
+            ? `Slot cancelled. ${result.cancelled} student reservation${result.cancelled === 1 ? "" : "s"} cancelled.`
+            : "Availability slot cancelled.");
         return;
     }
     const checkin = event.target.closest("[data-toggle-checkin]");
