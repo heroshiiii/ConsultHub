@@ -30,7 +30,6 @@
         <button class="nav-link active" data-view="dashboard">▦ Dashboard</button>
         <button class="nav-link" data-view="consultations">⌕ Find Consultation</button>
         <button class="nav-link" data-view="appointments">▣ My Appointments</button>
-        <button class="nav-link" data-view="history">◴ History</button>
     </nav>
 
     <div class="user-area">
@@ -79,12 +78,12 @@
                 <strong id="upcomingCount">1</strong>
                 <small>Upcoming</small>
             </button>
-            <button class="stat" data-go="history">
+            <button class="stat" data-go="appointments" data-appointment-filter="Completed">
                 <span class="stat-icon green">✓</span>
                 <strong id="completedCount">2</strong>
                 <small>Completed</small>
             </button>
-            <button class="stat" data-go="history">
+            <button class="stat" data-go="appointments" data-appointment-filter="No Show">
                 <span class="stat-icon red">⊗</span>
                 <strong id="noShowCount">1</strong>
                 <small>No Show</small>
@@ -99,7 +98,7 @@
             <section>
                 <h3 class="section-title">⊙ &nbsp; Recent Activity</h3>
                 <div id="recentActivity" class="activity-list"></div>
-                <button class="small-button" data-go="history">View full history</button>
+                <button class="small-button" data-go="appointments">View all appointments</button>
             </section>
         </div>
     </section>
@@ -135,42 +134,24 @@
         <div class="page-heading">
             <span class="eyebrow">CONSULTHUB</span>
             <h1>My Appointments</h1>
-            <p>Keep track of your upcoming and past consultations.</p>
+            <p>View and search all your upcoming and past consultations.</p>
         </div>
 
+        <div class="appointments-toolbar">
+            <label class="appointments-search">
+                <span aria-hidden="true">⌕</span>
+                <input id="appointmentSearch" type="search" placeholder="Search faculty, date, or status" aria-label="Search appointments">
+            </label>
+            <p id="appointmentsCount" class="appointments-count" aria-live="polite"></p>
+        </div>
         <div class="filters">
             <button class="filter active" data-filter="all">All</button>
             <button class="filter" data-filter="Confirmed">Confirmed</button>
             <button class="filter" data-filter="Completed">Completed</button>
             <button class="filter" data-filter="No Show">No Show</button>
+            <button class="filter" data-filter="Cancelled">Cancelled</button>
         </div>
         <div id="appointmentsList" class="stack-list"></div>
-    </section>
-
-    <!-- HISTORY -->
-    <section id="history" class="page-view history-view hidden">
-        <div class="page-heading">
-            <span class="eyebrow">CONSULTHUB</span>
-            <h1>Consultation History</h1>
-            <p>Review your completed and missed consultations.</p>
-            <button class="primary-button history-book-button" data-go="consultations">
-                Find Consultation
-            </button>
-        </div>
-        <p id="historyCount" class="history-count" aria-live="polite"></p>
-        <div class="history-toolbar">
-            <label class="history-search">
-                <span aria-hidden="true">⌕</span>
-                <input id="historySearch" type="search" placeholder="Search history..." aria-label="Search consultation history">
-            </label>
-            <div class="filters" aria-label="Filter history by status">
-                <button class="filter active" data-history-filter="all">All</button>
-                <button class="filter" data-history-filter="Completed">Completed</button>
-                <button class="filter" data-history-filter="No Show">No Show</button>
-                <button class="filter" data-history-filter="Cancelled">Cancelled</button>
-            </div>
-        </div>
-        <div id="historyList" class="history-table-wrap"></div>
     </section>
 
 </main>

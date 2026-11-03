@@ -25,7 +25,10 @@ const api = {
     replace(path, data) {
         return this.request(path, { method: "PUT", body: JSON.stringify(data) });
     },
-    remove(path) {
-        return this.request(path, { method: "DELETE" });
+    remove(path, data) {
+        return this.request(path, {
+            method: "DELETE",
+            ...(data === undefined ? {} : { body: JSON.stringify(data) })
+        });
     }
 };

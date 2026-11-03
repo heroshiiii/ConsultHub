@@ -10,7 +10,6 @@ let checkinWindow = 20;
 let checkinCloseWindow = 10;
 
 let activeFilter = "all";
-let activeHistoryFilter = "all";
 let selectedFaculty = null;
 let toastTimer;
 
@@ -105,9 +104,7 @@ function showPage(page) {
 
     if (page === "dashboard") renderDashboard();
     if (page === "consultations") renderFaculty();
-    if (page === "appointments" || page === "history") {
-        refreshAppointments();
-    }
+    if (page === "appointments") refreshAppointments();
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -117,7 +114,6 @@ async function refreshAppointments() {
         appointments = await api.get("appointments");
         renderDashboard();
         renderAppointments();
-        renderHistory();
     } catch (error) {
         showToast(`Could not refresh appointments: ${error.message}`);
     }
@@ -128,7 +124,12 @@ $$("[data-view]").forEach((button) => {
 });
 
 $$("[data-go]").forEach((button) => {
-    button.addEventListener("click", () => showPage(button.dataset.go));
+    button.addEventListener("click", () => {
+        if (button.dataset.appointmentFilter) {
+            setAppointmentFilter(button.dataset.appointmentFilter);
+        }
+        showPage(button.dataset.go);
+    });
 });
 
 
@@ -265,9 +266,10 @@ $("#facultySearch").addEventListener("input", renderFaculty);
 $("#departmentFilter").addEventListener("change", renderFaculty);
 
 
-// APPOINTMENTS AND HISTORY
+// APPOINTMENTS
 
 function renderAppointments() {
+    const search = $("#appointmentSearch").value.trim().toLowerCase();
     let list = [...appointments].sort((a, b) =>
         b.date.localeCompare(a.date)
     );
@@ -275,6 +277,15 @@ function renderAppointments() {
     if (activeFilter !== "all") {
         list = list.filter((item) => item.status === activeFilter);
     }
+    list = list.filter((item) =>
+        [item.faculty, item.college, item.department, item.date, item.time, item.status, item.reason]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(search)
+    );
+    $("#appointmentsCount").textContent =
+        `Showing ${list.length} of ${appointments.length} ${appointments.length === 1 ? "appointment" : "appointments"}`;
 
     $("#appointmentsList").innerHTML = list.length
         ? list.map((item) => `
@@ -303,6 +314,18 @@ function renderAppointments() {
                         <span aria-hidden="true">⌖</span>
                         <span><small>Location</small><strong>${escapeHTML(item.location)}</strong></span>
                     </div>
+                    ${item.status !== "Confirmed" ? `
+                        <div class="appointment-detail">
+                            <span aria-hidden="true">●</span>
+                            <span><small>Check-in</small><strong>${item.checkedIn ? "Checked In" : "Not Checked In"}</strong></span>
+                        </div>
+                    ` : ""}
+                    ${item.cancellationReason ? `
+                        <div class="appointment-detail">
+                            <span aria-hidden="true">ⓘ</span>
+                            <span><small>Cancellation reason</small><strong>${escapeHTML(item.cancellationReason)}</strong></span>
+                        </div>
+                    ` : ""}
                 </div>
 
                 <button class="small-button" data-details="${item.id}">
@@ -310,94 +333,24 @@ function renderAppointments() {
                 </button>
             </article>
         `).join("")
-        : `<div class="empty">No appointments in this category.</div>`;
+        : `<div class="empty">No appointments match your search and filters.</div>`;
+}
+
+$("#appointmentSearch").addEventListener("input", renderAppointments);
+
+function setAppointmentFilter(filter) {
+    activeFilter = filter;
+    $$("[data-filter]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.filter === filter);
+    });
+    renderAppointments();
 }
 
 $$("[data-filter]").forEach((button) => {
     button.addEventListener("click", () => {
-        activeFilter = button.dataset.filter;
-
-        $$("[data-filter]").forEach((tab) => {
-            tab.classList.toggle("active", tab === button);
-        });
-
-        renderAppointments();
+        setAppointmentFilter(button.dataset.filter);
     });
 });
-
-function renderHistory() {
-    const search = $("#historySearch").value.trim().toLowerCase();
-    const history = appointments.filter((item) =>
-        ["Completed", "No Show", "Cancelled"].includes(item.status)
-    );
-    const list = history
-        .filter((item) => activeHistoryFilter === "all" || item.status === activeHistoryFilter)
-        .filter((item) => (item.faculty + " " + item.department + " " + item.date + " " + item.time)
-            .toLowerCase().includes(search))
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-    $("#historyCount").textContent =
-        `${history.length} total ${history.length === 1 ? "record" : "records"}`;
-
-    $("#historyList").innerHTML = list.length
-        ? `
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Faculty</th>
-                        <th scope="col">Date</th>
-                        <th scope="col">Time</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Check-in</th>
-                        <th scope="col"><span class="visually-hidden">Details</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${list.map((item) => `
-                        <tr>
-                            <td>
-                                <div class="history-faculty">
-                                    <span class="avatar">${initials(item.faculty)}</span>
-                                    <span>
-                                        <strong>${escapeHTML(item.faculty)}</strong>
-                                        <small>Department of ${escapeHTML(item.department)}</small>
-                                    </span>
-                                </div>
-                            </td>
-                            <td><span class="history-cell-icon" aria-hidden="true">▦</span>${escapeHTML(prettyDate(item.date))}</td>
-                            <td><span class="history-cell-icon" aria-hidden="true">◷</span>${escapeHTML(item.time)}</td>
-                            <td>${badge(item.status)}</td>
-                            <td>
-                                <span class="checkin-badge ${item.checkedIn ? "checked-in" : "not-checked-in"}">
-                                    <span aria-hidden="true">●</span>${item.checkedIn ? "Checked In" : "Not Checked In"}
-                                </span>
-                            </td>
-                            <td>
-                                <button class="history-details" data-details="${item.id}"
-                                    aria-label="View details for ${escapeHTML(item.faculty)}">View</button>
-                            </td>
-                        </tr>
-                    `).join("")}
-                </tbody>
-            </table>
-        `
-        : `<div class="empty">No history records match your search.</div>`;
-}
-
-$("#historySearch").addEventListener("input", renderHistory);
-
-$$("[data-history-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-        activeHistoryFilter = button.dataset.historyFilter;
-
-        $$("[data-history-filter]").forEach((filter) => {
-            filter.classList.toggle("active", filter === button);
-        });
-
-        renderHistory();
-    });
-});
-
 
 // CREATE A BOOKING
 
@@ -542,6 +495,7 @@ document.addEventListener("click", (event) => {
             <div>⌖ &nbsp; ${escapeHTML(item.location)}</div>
             <div>Status: ${badge(item.status)}</div>
             ${item.reason ? `<div>Reason: ${escapeHTML(item.reason)}</div>` : ""}
+            ${item.cancellationReason ? `<div>Cancellation reason: ${escapeHTML(item.cancellationReason)}</div>` : ""}
         </div>
 
         <div class="details-actions">
@@ -605,7 +559,6 @@ setInterval(async () => {
         appointments = await api.get("appointments");
         renderDashboard();
         renderAppointments();
-        renderHistory();
     } catch (error) {
         showToast(`Could not refresh appointments: ${error.message}`);
     }

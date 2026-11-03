@@ -134,12 +134,21 @@
 
     </main>
     <dialog id="cancelSlotDialog" class="cancel-slot-dialog" aria-labelledby="cancelSlotTitle" aria-describedby="cancelSlotDescription">
-        <form method="dialog" class="cancel-slot-content">
+        <form id="cancelSlotForm" method="dialog" class="cancel-slot-content">
             <span class="cancel-slot-icon" aria-hidden="true">!</span>
             <div class="cancel-slot-copy">
                 <h2 id="cancelSlotTitle">Cancel this consultation slot?</h2>
                 <p id="cancelSlotSummary"></p>
                 <p id="cancelSlotDescription" class="cancel-slot-warning"></p>
+                <label class="cancel-slot-reason-label" for="slotCancellationReason">Reason students will see</label>
+                <select id="slotCancellationReason" required>
+                    <option value="">Select a reason</option>
+                    <option>Meeting conflict</option>
+                    <option>Unavailable</option>
+                    <option>Sick / illness</option>
+                    <option>Emergency</option>
+                    <option>Other</option>
+                </select>
             </div>
             <div class="cancel-slot-actions">
                 <button class="cancel-button" type="submit" value="keep">Keep slot</button>

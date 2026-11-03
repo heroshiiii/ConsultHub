@@ -711,6 +711,48 @@ input, select {
     color: var(--muted);
 }
 
+.appointments-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.appointments-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(100%, 300px);
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    color: var(--muted);
+    font-size: 17px;
+}
+
+.appointments-search:focus-within {
+    border-color: #9bb7ff;
+    box-shadow: 0 0 0 3px #2864ed16;
+}
+
+.appointments-search input {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 10px;
+}
+
+.appointments-count {
+    color: var(--muted);
+    font-size: 10px;
+}
+
 .appointments-view .filters {
     gap: 8px;
     margin-bottom: 16px;
@@ -812,212 +854,6 @@ input, select {
 .appointment-card .small-button {
     min-height: 32px;
     padding: 8px 12px;
-}
-
-.history-view .page-heading {
-    position: relative;
-    margin: 8px 0 20px;
-    padding-right: 160px;
-}
-
-.history-view .page-heading .eyebrow {
-    position: relative;
-    padding-left: 19px;
-    color: var(--blue);
-}
-
-.history-view .page-heading .eyebrow::before {
-    position: absolute;
-    top: 4px;
-    left: 0;
-    width: 14px;
-    height: 3px;
-    border-radius: 4px;
-    background: var(--blue);
-    content: "";
-}
-
-.history-view .page-heading h1 {
-    font-size: 27px;
-}
-
-.history-view .page-heading p {
-    color: var(--muted);
-}
-
-.history-book-button {
-    position: absolute;
-    top: 5px;
-    right: 0;
-    width: auto;
-    min-height: 34px;
-    margin: 0;
-    padding: 0 14px;
-    border-radius: 20px;
-}
-
-.history-count {
-    margin-bottom: 12px;
-    color: var(--muted);
-    font-size: 10px;
-}
-
-.history-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-
-.history-search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: min(100%, 270px);
-    height: 38px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: white;
-    color: var(--muted);
-    font-size: 17px;
-}
-
-.history-search:focus-within {
-    border-color: #9bb7ff;
-    box-shadow: 0 0 0 3px #2864ed16;
-}
-
-.history-search input {
-    height: 100%;
-    padding: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    font-size: 10px;
-}
-
-.history-search input:focus {
-    box-shadow: none;
-}
-
-.history-view .filters {
-    gap: 6px;
-    margin: 0;
-}
-
-.history-view .filter {
-    padding: 7px 11px;
-    border-radius: 9px;
-    font-size: 10px;
-}
-
-.history-view .filter.active {
-    border-color: var(--blue);
-    background: var(--blue);
-    color: white;
-}
-
-.history-table-wrap {
-    overflow-x: auto;
-    border: 1px solid var(--border);
-    border-radius: 15px;
-    background: white;
-    box-shadow: 0 5px 20px #1d355708;
-}
-
-.history-table {
-    width: 100%;
-    min-width: 700px;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.history-table th {
-    padding: 11px 12px;
-    background: #f8fafc;
-    color: #75849e;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .35px;
-}
-
-.history-table td {
-    padding: 11px 12px;
-    border-top: 1px solid #e8edf5;
-    color: #62738d;
-    font-size: 10px;
-    line-height: 1.4;
-}
-
-.history-faculty {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 170px;
-}
-
-.history-faculty .avatar {
-    width: 26px;
-    height: 26px;
-    flex: 0 0 auto;
-    background: var(--blue);
-    font-size: 9px;
-}
-
-.history-faculty > span:last-child {
-    display: grid;
-    gap: 3px;
-}
-
-.history-faculty strong {
-    color: var(--text);
-    font-size: 10px;
-}
-
-.history-faculty small {
-    max-width: 150px;
-    color: var(--muted);
-    font-size: 8px;
-}
-
-.history-cell-icon {
-    margin-right: 5px;
-    color: #8393a9;
-}
-
-.checkin-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
-    border-radius: 20px;
-    font-size: 8px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.checkin-badge.checked-in {
-    background: #e8fff4;
-    color: #09885c;
-}
-
-.checkin-badge.not-checked-in {
-    background: #f0f3f8;
-    color: #71809b;
-}
-
-.history-details {
-    border: 0;
-    background: transparent;
-    color: var(--blue);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.history-details:hover {
-    text-decoration: underline;
 }
 
 .visually-hidden {
@@ -1460,21 +1296,12 @@ input, select {
         gap: 10px;
     }
 
-    .history-view .page-heading {
-        padding-right: 0;
-    }
-
-    .history-book-button {
-        position: static;
-        margin-top: 12px;
-    }
-
-    .history-toolbar {
+    .appointments-toolbar {
         align-items: stretch;
         flex-direction: column;
     }
 
-    .history-search {
+    .appointments-search {
         width: 100%;
     }
 
@@ -1574,8 +1401,7 @@ input, select {
     }
 
     .welcome h1,
-    .page-heading h1,
-    .history-view .page-heading h1 {
+    .page-heading h1 {
         font-size: clamp(22px, 7vw, 28px);
     }
 
@@ -1611,8 +1437,7 @@ input, select {
 
     .toolbar input,
     .toolbar select,
-    .history-search,
-    .history-view .filter,
+    .appointments-search,
     .appointments-view .filter {
         min-height: 42px;
         font-size: 13px;
@@ -1635,18 +1460,9 @@ input, select {
     }
 
     .primary-button,
-    .small-button,
-    .history-book-button {
+    .small-button {
         min-height: 42px;
         font-size: 13px;
-    }
-
-    .history-toolbar {
-        gap: 10px;
-    }
-
-    .history-table {
-        min-width: 660px;
     }
 
     .modal-card {

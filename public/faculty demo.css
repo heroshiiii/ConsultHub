@@ -61,6 +61,8 @@ button,input,select{font:inherit}button,a{cursor:pointer}.hidden{display:none!im
 .cancel-slot-copy h2{margin:2px 0 7px;font-size:16px;letter-spacing:-.3px}
 .cancel-slot-copy p{color:#66758c;font-size:11px;line-height:1.55}
 .cancel-slot-copy .cancel-slot-warning{margin-top:11px;padding:10px 12px;border:1px solid #f3e5d4;border-radius:10px;background:#fffaf4;color:#80531f}
+.cancel-slot-reason-label{display:block;margin:14px 0 6px;color:#53647e;font-size:10px;font-weight:700}
+.cancel-slot-copy select{height:38px;font-size:11px}
 .cancel-slot-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
 .cancel-slot-actions .cancel-button,.cancel-slot-actions .danger-button{min-height:38px;padding:0 15px;border-radius:10px;font-size:10px;font-weight:700}
 .danger-button{border:0;background:#d9414d;color:#fff;box-shadow:0 4px 10px #d9414d30}

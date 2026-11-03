@@ -483,9 +483,10 @@ document.addEventListener("click", async (event) => {
         const slot = slots.find((item) => item.id === deleteButton.dataset.deleteSlot);
         if (!slot) return;
         pendingSlotCancellation = slot;
+        $("#slotCancellationReason").value = "";
         $("#cancelSlotSummary").textContent = `${slotDateLabel(slot.date)} · ${slot.start}–${slot.end} · ${slot.location}`;
         $("#cancelSlotDescription").textContent = slot.booked > 0
-            ? `${slot.booked} student reservation${slot.booked === 1 ? "" : "s"} will be cancelled and shown in those students’ history.`
+            ? `${slot.booked} student reservation${slot.booked === 1 ? "" : "s"} will be cancelled and the reason will appear in those students’ appointments.`
             : "No students have reserved this slot. It will be removed from your availability.";
         $("#cancelSlotDialog").showModal();
         return;
@@ -511,18 +512,23 @@ document.addEventListener("click", async (event) => {
     }
 });
 
+$("#confirmCancelSlot").addEventListener("click", (event) => {
+    if (!$("#slotCancellationReason").reportValidity()) event.preventDefault();
+});
+
 $("#cancelSlotDialog").addEventListener("close", async () => {
     const slot = pendingSlotCancellation;
+    const cancellationReason = $("#slotCancellationReason").value;
     pendingSlotCancellation = null;
     if ($("#cancelSlotDialog").returnValue !== "confirm" || !slot) return;
 
     $("#confirmCancelSlot").disabled = true;
     try {
-        const result = await api.remove(`slots/${slot.id}`);
+        const result = await api.remove(`slots/${slot.id}`, { cancellationReason });
         slots = slots.filter((item) => item.id !== slot.id);
         appointments = appointments.map((appointment) =>
             appointment.slotId === slot.id && appointment.status === "Confirmed"
-                ? { ...appointment, status: "Cancelled" }
+                ? { ...appointment, status: "Cancelled", cancellationReason }
                 : appointment
         );
         renderAppointments();

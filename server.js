@@ -26,6 +26,7 @@ const sessionCookie = "consulthub_session";
 const otpLifetimeMs = 5 * 60 * 1000;
 const otpResendDelayMs = 30 * 1000;
 const otpMaxAttempts = 5;
+const slotCancellationReasons = ["Meeting conflict", "Unavailable", "Sick / illness", "Emergency", "Other"];
 let databaseInitialization;
 
 if (!mongoUri) {
@@ -131,6 +132,7 @@ const consultationSchema = new mongoose.Schema({
     date: { type: String, required: true },
     timeSlot: { type: String, required: true },
     reason: { type: String, default: "" },
+    cancellationReason: { type: String, enum: ["", ...slotCancellationReasons], default: "" },
     status: { type: String, enum: ["upcoming", "completed", "no-show", "cancelled"], default: "upcoming" },
     checkedIn: { type: Boolean, default: false },
     checkedAt: { type: String, default: "" }
@@ -1168,6 +1170,10 @@ app.delete("/api/slots/:id", asyncRoute(async (request, response) => {
     if (!user || user.role !== "Faculty") {
         return response.status(403).json({ error: "An active faculty account is required to cancel availability." });
     }
+    const cancellationReason = String(request.body?.cancellationReason || "");
+    if (!slotCancellationReasons.includes(cancellationReason)) {
+        return response.status(400).json({ error: "Select a valid reason for cancelling this consultation slot." });
+    }
     const faculty = await Faculty.findOne({ email: user.email }).select("_id");
     if (!faculty) return response.status(404).json({ error: "Faculty profile not found." });
 
@@ -1189,6 +1195,7 @@ app.delete("/api/slots/:id", asyncRoute(async (request, response) => {
             }).session(session);
             for (const appointment of appointments) {
                 appointment.status = "cancelled";
+                appointment.cancellationReason = cancellationReason;
                 await appointment.save({ session });
             }
             await archiveAppointments(appointments, { session });
