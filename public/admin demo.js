@@ -11,6 +11,7 @@ let editingFacultyIndex = null;
 let editingAccountIndex = null;
 let systemPolicies = {
     checkinWindow: 20,
+    checkinCloseWindow: 10,
     defaultCapacity: 5,
     automaticNoShow: true,
     automaticCompletion: true
@@ -175,8 +176,6 @@ function renderStudents() {
                 email: account.email,
                 studentNumber: accountIdNumber(account) || profile?.studentNumber || "",
                 program: account.program || profile?.program || "",
-                year: profile?.year || "",
-                section: profile?.section || "",
                 profileIndex,
                 accountIndex
             };
@@ -191,12 +190,11 @@ function renderStudents() {
             accountIndex: -1
         }));
     const filteredStudents = [...accountStudents, ...unlinkedProfiles].filter((student) =>
-        `${student.name} ${student.email} ${student.studentNumber} ${student.program} ${student.year} ${student.section}`.toLowerCase().includes(query)
+        `${student.name} ${student.email} ${student.studentNumber} ${student.program}`.toLowerCase().includes(query)
     );
 
     $("#studentsList").innerHTML = filteredStudents.length
         ? filteredStudents.map((student) => {
-            const level = [student.year, student.section].filter(Boolean).join(" · ") || "—";
             const editButton = student.profileIndex >= 0
                 ? `<button class="student-edit-button" type="button" data-edit-student="${student.profileIndex}" aria-label="Edit ${escapeHTML(student.name)}">Edit</button>`
                 : `<button class="student-edit-button" type="button" data-edit-account="${student.accountIndex}" aria-label="Edit account for ${escapeHTML(student.name)}">Edit</button>`;
@@ -204,15 +202,15 @@ function renderStudents() {
                 <td class="student-name-cell"><strong>${escapeHTML(student.name)}</strong><small>${escapeHTML(student.email)}</small></td>
                 <td>${escapeHTML(student.studentNumber || "—")}</td>
                 <td>${escapeHTML(student.program || "—")}</td>
-                <td>${escapeHTML(level)}</td>
                 <td>${editButton}</td>
             </tr>`;
         }).join("")
-        : `<tr><td class="student-empty" colspan="5">No students match your search.</td></tr>`;
+        : `<tr><td class="student-empty" colspan="4">No students match your search.</td></tr>`;
 }
 
 function renderSystem() {
     $("#checkinWindow").value = systemPolicies.checkinWindow;
+    $("#checkinCloseWindow").value = systemPolicies.checkinCloseWindow;
     $("#defaultCapacity").value = systemPolicies.defaultCapacity;
     $("#automaticNoShow").checked = systemPolicies.automaticNoShow;
     $("#automaticCompletion").checked = systemPolicies.automaticCompletion;
@@ -470,8 +468,6 @@ function openStudentDialog(index = null) {
     $("#studentEmail").value = student?.email || "";
     $("#studentNumber").value = student?.studentNumber || "";
     $("#studentProgram").value = student?.program || "";
-    $("#studentYear").value = student?.year || "";
-    $("#studentSection").value = student?.section || "";
     $("#studentDialog").showModal();
 }
 
@@ -494,9 +490,7 @@ $("#studentForm").addEventListener("submit", async (event) => {
         name: $("#studentName").value.trim(),
         email: $("#studentEmail").value.trim(),
         studentNumber: $("#studentNumber").value.trim(),
-        program: $("#studentProgram").value.trim(),
-        year: $("#studentYear").value.trim(),
-        section: $("#studentSection").value.trim()
+        program: $("#studentProgram").value.trim()
     };
     const duplicate = studentData.some((item, index) =>
         index !== editingStudentIndex &&
@@ -535,6 +529,7 @@ $("#systemPolicyForm").addEventListener("submit", async (event) => {
     try {
         systemPolicies = await api.replace("policies", {
             checkinWindow: Number($("#checkinWindow").value),
+            checkinCloseWindow: Number($("#checkinCloseWindow").value),
             defaultCapacity: Number($("#defaultCapacity").value),
             automaticNoShow: $("#automaticNoShow").checked,
             automaticCompletion: $("#automaticCompletion").checked

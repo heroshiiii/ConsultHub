@@ -17,6 +17,7 @@ let toastTimer;
 let editingSlotId = null;
 let pendingSlotCancellation = null;
 let checkinWindow = 20;
+let checkinCloseWindow = 10;
 
 function dateOffset(startDate, offset) {
     const date = new Date(startDate);
@@ -25,7 +26,7 @@ function dateOffset(startDate, offset) {
 }
 
 function isCheckInOpen(item) {
-    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, 10);
+    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, checkinCloseWindow);
 }
 
 function escapeHTML(value) {
@@ -321,7 +322,7 @@ function renderAppointments() {
                                 ? `<span class="checkin-status checked" aria-label="Checked in ${escapeHTML(student.name)}"><span aria-hidden="true">●</span>Checked In</span>`
                                 : `<button class="checkin-status not-checked" type="button" data-toggle-checkin="${index}"
                                     ${student.status !== "Confirmed" || !isCheckInOpen(student) ? "disabled" : ""}
-                                    title="${!isCheckInOpen(student) ? `Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.` : ""}"
+                                    title="${!isCheckInOpen(student) ? `Check-in opens ${checkinWindow} minutes before the appointment and closes ${checkinCloseWindow} minutes before it ends.` : ""}"
                                     aria-label="Mark present ${escapeHTML(student.name)}">
                                     <span aria-hidden="true">●</span>Not Checked In
                                 </button>`}
@@ -550,6 +551,7 @@ async function initializeFacultyPage() {
             api.get("policies")
         ]);
         checkinWindow = Number(policy?.checkinWindow ?? 20);
+        checkinCloseWindow = Number(policy?.checkinCloseWindow ?? 10);
         if (user.role !== "Faculty" || !user.facultyId) {
             throw new Error("An active faculty profile is required to view this dashboard.");
         }

@@ -101,7 +101,7 @@
                 <button class="management-card" data-go="students">
                     <span class="management-icon green">♧</span>
                     <strong>Student information</strong>
-                    <small><span id="studentManagementCount">0</span> students · Review programs and year levels</small>
+                    <small><span id="studentManagementCount">0</span> students · Review programs and student numbers</small>
                     <span class="management-arrow">›</span>
                 </button>
                 <button class="management-card" data-go="system">
@@ -157,7 +157,7 @@
             <div class="page-heading students-heading">
                 <span class="eyebrow">DIRECTORY</span>
                 <h1>Student information management</h1>
-                <p>View and maintain student academic information used for consultations.</p>
+                <p>View and maintain student contact and program information.</p>
             </div>
             <section class="students-panel" aria-label="Student information">
                 <div class="students-toolbar">
@@ -174,7 +174,6 @@
                                 <th scope="col">Student</th>
                                 <th scope="col">Student No.</th>
                                 <th scope="col">Program</th>
-                                <th scope="col">Level</th>
                                 <th scope="col">Action</th>
                             </tr>
                         </thead>
@@ -200,6 +199,9 @@
                         <div class="policy-fields">
                             <label>Check-in window
                                 <span class="number-input-wrap"><input id="checkinWindow" type="number" min="0" max="180" required><small>minutes before</small></span>
+                            </label>
+                            <label>Check-in closes
+                                <span class="number-input-wrap"><input id="checkinCloseWindow" type="number" min="0" max="180" required><small>minutes before end</small></span>
                             </label>
                             <label>Default slot capacity
                                 <span class="number-input-wrap"><input id="defaultCapacity" type="number" min="1" max="100" required></span>
@@ -329,10 +331,6 @@
             <label>Email<input id="studentEmail" name="email" type="email" required autocomplete="email"></label>
             <label>Student number<input id="studentNumber" name="studentNumber" required></label>
             <label>Program<input id="studentProgram" name="program" required></label>
-            <div class="student-form-row">
-                <label>Year<input id="studentYear" name="year" required placeholder="e.g. Year 3"></label>
-                <label>Section<input id="studentSection" name="section" required placeholder="e.g. 3A"></label>
-            </div>
             <div class="dialog-actions">
                 <button id="cancelStudentDialog" class="cancel-button" type="button">Cancel</button>
                 <button id="saveStudentButton" class="add-account-button" type="submit">Add student</button>

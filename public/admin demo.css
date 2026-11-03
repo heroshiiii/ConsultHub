@@ -1546,12 +1546,6 @@ button, a {
     text-align: center;
 }
 
-.student-dialog .student-form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
 @media (max-width: 600px) {
     .page-view#students {
         width: 100%;
@@ -1647,7 +1641,7 @@ button, a {
 
 .policy-fields {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 9px;
     margin-bottom: 5px;
 }

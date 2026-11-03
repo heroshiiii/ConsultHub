@@ -7,6 +7,7 @@ let facultyMembers = [];
 let consultationSlots = [];
 let currentStudent = null;
 let checkinWindow = 20;
+let checkinCloseWindow = 10;
 
 let activeFilter = "all";
 let activeHistoryFilter = "all";
@@ -48,7 +49,7 @@ function shortDate(date) {
 }
 
 function isCheckInOpen(item) {
-    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, 10);
+    return window.appointmentTime.isCheckInOpen(item.date, item.time || item.timeSlot, checkinWindow, checkinCloseWindow);
 }
 
 function badge(status) {
@@ -551,7 +552,7 @@ document.addEventListener("click", (event) => {
                         Check In
                     </button>
                     <small data-checkin-availability ${isCheckInOpen(item) ? "hidden" : ""}>
-                        Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.
+                        Check-in opens ${checkinWindow} minutes before the appointment and closes ${checkinCloseWindow} minutes before it ends.
                     </small>
                 ` : ""}
             <button class="small-button" id="closeDetails">Close</button>
@@ -573,7 +574,7 @@ document.addEventListener("click", async (event) => {
 
     if (item.checkedIn) return;
     if (!isCheckInOpen(item)) {
-        showToast(`Check-in opens ${checkinWindow} minutes before the appointment and closes 10 minutes before it ends.`);
+        showToast(`Check-in opens ${checkinWindow} minutes before the appointment and closes ${checkinCloseWindow} minutes before it ends.`);
         return;
     }
 
@@ -631,6 +632,7 @@ async function initializeStudentPage() {
             api.get("policies")
         ]);
         checkinWindow = Number(policy?.checkinWindow ?? 20);
+        checkinCloseWindow = Number(policy?.checkinCloseWindow ?? 10);
         consultationSlots = slotData;
         facultyMembers = facultyData.map((faculty) => ({
             ...faculty,

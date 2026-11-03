@@ -26,7 +26,6 @@ const sessionCookie = "consulthub_session";
 const otpLifetimeMs = 5 * 60 * 1000;
 const otpResendDelayMs = 30 * 1000;
 const otpMaxAttempts = 5;
-const checkinCloseMinutes = 10;
 let databaseInitialization;
 
 if (!mongoUri) {
@@ -103,9 +102,7 @@ const studentSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true },
     studentNumber: { type: String, required: true, trim: true, unique: true },
-    program: { type: String, required: true, trim: true },
-    year: { type: String, required: true, trim: true },
-    section: { type: String, required: true, trim: true }
+    program: { type: String, required: true, trim: true }
 }, { timestamps: true });
 
 const slotSchema = new mongoose.Schema({
@@ -146,6 +143,7 @@ consultationSchema.index(
 const policySchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true, default: "default" },
     checkinWindow: { type: Number, default: 20, min: 0, max: 180 },
+    checkinCloseWindow: { type: Number, default: 10, min: 0, max: 180 },
     defaultCapacity: { type: Number, default: 5, min: 1, max: 100 },
     automaticNoShow: { type: Boolean, default: true },
     automaticCompletion: { type: Boolean, default: true }
@@ -630,13 +628,15 @@ function appointmentTimeRange(date, timeSlot) {
 async function getCheckInWindow(appointment) {
     const timeRange = appointmentTimeRange(appointment.date, appointment.timeSlot || appointment.time);
     if (timeRange === null) return null;
-    const policy = await Policy.findOne({ key: "default" }).select("checkinWindow").lean();
+    const policy = await Policy.findOne({ key: "default" }).select("checkinWindow checkinCloseWindow").lean();
     const minutes = policy?.checkinWindow ?? 20;
+    const closeMinutes = policy?.checkinCloseWindow ?? 10;
     return {
         ...timeRange,
         opensAt: timeRange.startsAt - minutes * 60 * 1000,
-        closesAt: timeRange.endsAt - checkinCloseMinutes * 60 * 1000,
-        minutes
+        closesAt: timeRange.endsAt - closeMinutes * 60 * 1000,
+        minutes,
+        closeMinutes
     };
 }
 
@@ -689,7 +689,7 @@ async function processAppointmentStatuses(now = Date.now()) {
         if (appointment.checkedIn && policy?.automaticCompletion !== false && now >= timeRange.endsAt) {
             nextStatus = "completed";
         } else if (!appointment.checkedIn && policy?.automaticNoShow !== false &&
-            now >= timeRange.endsAt - checkinCloseMinutes * 60 * 1000) {
+            now >= timeRange.endsAt - (policy?.checkinCloseWindow ?? 10) * 60 * 1000) {
             nextStatus = "no-show";
         }
         if (!nextStatus) continue;
@@ -1111,7 +1111,7 @@ app.delete("/api/faculty/:id", asyncRoute(async (request, response) => {
     response.status(204).end();
 }));
 
-app.post("/api/students", requireFields(["name", "email", "studentNumber", "program", "year", "section"]), asyncRoute(async (request, response) => {
+app.post("/api/students", requireFields(["name", "email", "studentNumber", "program"]), asyncRoute(async (request, response) => {
     const student = await Student.create(request.body);
     await upsertUserForProfile({ name: student.name, email: student.email, role: "Student" });
     response.status(201).json(serialize(student));
@@ -1288,7 +1288,7 @@ const updateAppointment = asyncRoute(async (request, response) => {
             return response.status(409).json({
                 error: now < window.opensAt
                     ? `Check-in opens ${window.minutes} minutes before the appointment.`
-                    : `Check-in closes ${checkinCloseMinutes} minutes before the appointment ends.`
+                    : `Check-in closes ${window.closeMinutes} minutes before the appointment ends.`
             });
         }
     }
